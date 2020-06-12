@@ -7,8 +7,8 @@ case "$prefix" in
 esac
 
 libpth='/boot/home/config/lib /boot/common/lib /system/lib'
-usrinc='/boot/develop/headers/posix'
-locinc='/boot/home/config/include /boot/common/include /boot/develop/headers'
+usrinc='/boot/system/develop/headers/posix'
+locinc='/boot/home/config/include /boot/common/include /boot/system/develop/headers'
 
 libc='/system/lib/libroot.so'
 libs='-lnetwork'
@@ -30,6 +30,8 @@ d_syserrlst='undef'
 # Haiku uses gcc.
 cc="gcc"
 ld='gcc'
+
+ccflags="$ccflags -fno-stack-protector"
 
 # The runtime loader library path variable is LIBRARY_PATH.
 case "$ldlibpthname" in
