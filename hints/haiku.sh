@@ -6,9 +6,9 @@ case "$prefix" in
 *) ;; # pass the user supplied value through
 esac
 
-libpth='/boot/home/config/lib /boot/common/lib /system/lib'
+libpth='/boot/home/config/lib /boot/system/non-packaged/lib /system/lib'
 usrinc='/boot/system/develop/headers/posix'
-locinc='/boot/home/config/include /boot/common/include /boot/system/develop/headers'
+locinc='/boot/home/config/include /boot/system/non-packaged/include /boot/system/develop/headers'
 
 libc='/system/lib/libroot.so'
 libs='-lnetwork'
