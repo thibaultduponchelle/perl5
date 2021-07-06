@@ -86,6 +86,10 @@ sub test_X_ops {
 
             if ($^O eq "VMS" && $op =~ /[rwxRWX]/) {
                 is($vwarn, 1, "warning about VMS ACLs $desc");
+            } elsif ($^O eq "haiku" && $op =~ /A/) {
+                # atime is not stored on Haiku BFS
+                # and stat always returns local time instead 
+                note("Not testing -A $desc_tail on Haiku");
             } else {
                 is($rv, eval "-$op \$file", "correct overload $desc")
                     unless $access;
