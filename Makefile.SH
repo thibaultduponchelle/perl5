@@ -124,9 +124,8 @@ true)
 		linklibperl="-L `pwd | sed 's/\/UU$//'` -Wl,+s -Wl,+b$archlibexp/CORE -lperl"
 		;;
 	os390*)
-            shrpldflags='-W l,XPLINK,dll'
+            shrpldflags='-Wl,XPLINK,dll'
 	    linklibperl='libperl.x'
-	    DPERL_EXTERNAL_GLOB=''
 	    ;;
 	esac
 	case "$ldlibpthname" in
@@ -1448,7 +1447,7 @@ _cleaner2:
 	-rmdir lib/TAP/Formatter/File lib/TAP/Formatter/Console
 	-rmdir lib/TAP/Formatter lib/TAP lib/Sys/Syslog lib/Sys lib/Sub
 	-rmdir lib/Search lib/Scalar lib/Pod/Text lib/Pod/Simple
-	-rmdir lib/Pod/Perldoc lib/PerlIO/via lib/PerlIO lib/Perl
+	-rmdir lib/Pod/Perldoc lib/Pod/Html lib/PerlIO/via lib/PerlIO lib/Perl
 	-rmdir lib/Parse/CPAN lib/Parse lib/Params lib/Net/FTP lib/Module/Load
 	-rmdir lib/Module/CoreList lib/Module lib/Memoize lib/Math/BigInt
 	-rmdir lib/Math/BigFloat lib/Math lib/MIME lib/Locale/Maketext

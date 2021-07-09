@@ -794,7 +794,6 @@ EXTRACORE_SRC	= $(EXTRACORE_SRC) ..\perlio.c
 
 WIN32_SRC	=		\
 		.\win32.c	\
-		.\win32io.c	\
 		.\win32sck.c	\
 		.\win32thread.c	\
 		.\fcrypt.c
@@ -1317,6 +1316,7 @@ distclean: realclean
 	-if exist $(LIBDIR)\Parse rmdir /s /q $(LIBDIR)\Parse
 	-if exist $(LIBDIR)\Perl rmdir /s /q $(LIBDIR)\Perl
 	-if exist $(LIBDIR)\PerlIO rmdir /s /q $(LIBDIR)\PerlIO
+	-if exist $(LIBDIR)\Pod\Html rmdir /s /q $(LIBDIR)\Pod\Html
 	-if exist $(LIBDIR)\Pod\Perldoc rmdir /s /q $(LIBDIR)\Pod\Perldoc
 	-if exist $(LIBDIR)\Pod\Simple rmdir /s /q $(LIBDIR)\Pod\Simple
 	-if exist $(LIBDIR)\Pod\Text rmdir /s /q $(LIBDIR)\Pod\Text
