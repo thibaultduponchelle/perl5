@@ -270,7 +270,7 @@ SKIP: {
 
 SKIP: {
   skip('lacking d_shm', 11) unless
-      $Config{'d_shm'} eq 'define';
+      defined $Config{'d_shm'};
 
   use IPC::SysV qw(shmat shmdt memread memwrite ftok);
 
@@ -308,7 +308,7 @@ SKIP: {
 
 SKIP: {
   skip('lacking d_shm', 11) unless
-      $Config{'d_shm'} eq 'define';
+      defined $Config{'d_shm'};
 
   use IPC::SysV qw(ftok);
 

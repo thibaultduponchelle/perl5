@@ -18,7 +18,10 @@ my $s1 = IO::Socket::IP->new(
 my $s2 = IO::Socket::IP->new;
 $s2->fdopen( $s1->fileno, 'r' ) or die "Cannot fdopen - $!";
 
-ok( defined $s2->socktype, '$s2->socktype defined' );
+{
+   local $TODO = 'socktype not implemented on haiku' if $^O eq 'haiku';
+   ok( defined $s2->socktype, '$s2->socktype defined' );
+}
 is( $s2->sockport, $s1->sockport, '$s2->sockport' );
 
 done_testing;

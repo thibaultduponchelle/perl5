@@ -19,7 +19,7 @@ BEGIN {use_ok('Net::Ping')};
 TODO: {
     local $TODO = "Not working on os390 smoker; may be a permissions problem"
       if $^O eq 'os390';
-    $TODO = "Not working on freebsd" if $^O eq 'freebsd';
+    local $TODO = "Not working on $^O" if $^O eq 'freebsd' or $^O eq 'haiku';
     my $result = pingecho("127.0.0.1");
     is($result, 1, "pingecho 127.0.0.1 works");
 }

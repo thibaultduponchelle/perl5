@@ -238,6 +238,7 @@ SKIP: {
 	chomp $ppid;
 	is($ppid, $$, 'getppid');
 	is(POSIX::wait(), $pid, 'wait');
+	skip('', 2) if $^O eq 'haiku';
 	is(POSIX::WIFEXITED(${^CHILD_ERROR_NATIVE}), 1, 'child exited cleanly');
 	is(POSIX::WEXITSTATUS(${^CHILD_ERROR_NATIVE}), 1,
 	   'child exited with 1 (the retun value of its close call)');

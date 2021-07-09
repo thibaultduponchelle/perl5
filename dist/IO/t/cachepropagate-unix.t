@@ -50,7 +50,7 @@ my $p = $listener->protocol();
     # This is a TODO instead of a skip so if these ever implement SO_PROTOCOL
     # we'll be notified about the passing TODO so the test can be updated.
     local $TODO = "$^O doesn't support SO_PROTOCOL on AF_UNIX"
-        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu)$/;
+        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu|haiku)$/;
     ok(defined($p), 'protocol defined');
 }
 my $d = $listener->sockdomain();

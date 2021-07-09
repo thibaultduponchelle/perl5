@@ -137,10 +137,13 @@ if ($^O eq 'dragonfly') {
     $atime = 1.111111;
     $mtime = 2.222222;
 }
+if ($^O eq 'haiku') {
+    $mtime = 2.222035968;
+}
 print "# \$^O = $^O, atime = $atime, mtime = $mtime\n";
 
 my $skip_atime = $^O eq 'netbsd' && tempfile_has_noatime_mount();
-$skip_atime = 1 if $^O eq 'dragonfly'; # noatime by default
+$skip_atime = 1 if $^O eq 'dragonfly' or $^O eq 'haiku'; # noatime by default
 
 if ($skip_atime) {
     printf("# Skipping atime tests because tempfiles seem to be in a filesystem mounted with 'noatime' ($^O)\n'");
@@ -171,7 +174,7 @@ print "#utime \$filename\n";
 };
 
 print "#utime \$filename round-trip\n";
-{
+SKIP: {
     my ($fh, $filename) = tempfile( "Time-HiRes-utime-XXXXXXXXX", UNLINK => 1 );
     # this fractional part is not exactly representable
     my $t = 1000000000.12345;
@@ -179,8 +182,9 @@ print "#utime \$filename round-trip\n";
     my ($got_atime, $got_mtime) = ( Time::HiRes::stat($fh) )[8, 9];
     is Time::HiRes::utime($got_atime, $got_mtime, $filename), 1, "One file changed";
     my ($got_atime2, $got_mtime2) = ( Time::HiRes::stat($fh) )[8, 9];
-    is $got_atime, $got_atime2, "atime round trip ok";
     is $got_mtime, $got_mtime2, "mtime round trip ok";
+    skip 'haiku doesn\t do atime', 1 if $^O eq 'haiku';
+    is $got_atime, $got_atime2, "atime round trip ok";
 };
 
 print "utime \$filename and \$fh\n";
@@ -236,7 +240,7 @@ print "# utime undef sets time to now\n";
 print "# negative atime dies\n";
 {
     eval { Time::HiRes::utime(-4, $mtime) };
-    like $@, qr/::utime\(-4, 2\.22222\): negative time not invented yet/,
+    like $@, qr/::utime\(-4, 2\.22\d+\): negative time not invented yet/,
          "negative time error";
 };
 

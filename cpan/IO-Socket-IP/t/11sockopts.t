@@ -12,7 +12,7 @@ use Errno qw( EACCES );
 use Socket qw( SOL_SOCKET SO_REUSEADDR SO_REUSEPORT SO_BROADCAST );
 
 TODO: {
-   local $TODO = "SO_REUSEADDR doesn't appear to work on cygwin smokers" if $^O eq "cygwin";
+   local $TODO = "SO_REUSEADDR doesn't appear to work on cygwin smokers" if $^O eq "cygwin" or $^O eq 'haiku';
    # I honestly have no idea why this fails, and people don't seem to be able
    # to reproduce it on a development box. I'll mark it TODO for now until we
    # can gain any more insight into it.
@@ -38,13 +38,15 @@ TODO: {
    ok( $sock->getsockopt( SOL_SOCKET, SO_REUSEADDR ), 'SO_REUSEADDR set via Sockopts' );
 }
 
-SKIP: {
+{
    # Some OSes don't implement SO_REUSEPORT
    skip "No SO_REUSEPORT constant", 1 unless defined eval { SO_REUSEPORT };
-   skip "No support for SO_REUSEPORT", 1 unless defined eval {
+   local $TODO = "No support for SO_REUSEPORT" unless defined eval {
       my $s;
       socket( $s, Socket::PF_INET, Socket::SOCK_STREAM, 0 ) and
-         setsockopt( $s, SOL_SOCKET, SO_REUSEPORT, 1 ) };
+         setsockopt( $s, SOL_SOCKET, SO_REUSEPORT, 1 );
+	 getsockopt( $s, SOL_SOCKET, SO_REUSEPORT );
+      };
 
    my $sock = IO::Socket::IP->new(
       LocalHost => "127.0.0.1",
@@ -56,7 +58,8 @@ SKIP: {
    ok( $sock->getsockopt( SOL_SOCKET, SO_REUSEPORT ), 'SO_REUSEPORT set' );
 }
 
-SKIP: {
+{
+   local $TODO = "No SO_BROADCAST available" if $^O eq 'haiku';
    # Some OSes need special privileges to set SO_BROADCAST
    $! = 0;
    my $sock = IO::Socket::IP->new(

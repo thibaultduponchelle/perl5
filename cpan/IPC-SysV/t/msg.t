@@ -30,6 +30,8 @@ if ($Config{'d_sem'} ne 'define') {
   plan(skip_all => '$Config{d_sem} undefined');
 } elsif ($Config{'d_msg'} ne 'define') {
   plan(skip_all => '$Config{d_msg} undefined');
+} elsif ($^O eq 'haiku') {
+  plan(skip_all => 'Deleting queues on haiku is broken');
 }
 
 use IPC::SysV qw(IPC_PRIVATE IPC_RMID IPC_NOWAIT IPC_STAT S_IRWXU S_IRWXG S_IRWXO);

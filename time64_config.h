@@ -65,7 +65,6 @@
    fast and safe.  Except on VMS, where we need the homegrown gmtime()
    override to shift between UTC and local for the vmsish 'time' pragma.
 */
-#define USE_SYSTEM_LOCALTIME
 #ifdef VMS
 #  define USE_SYSTEM_GMTIME
 #endif

@@ -21,7 +21,7 @@ Version 3.43
 
 =cut
 
-our $VERSION = '3.43';
+our $VERSION = '3.44';
 
 =head1 SYNOPSIS
 
@@ -130,7 +130,7 @@ sub _iter {
             return ( $parser, $stash, $result );
         }
 
-        unless (@ready) {
+        until (@ready) {
             return unless $sel->count;
             @ready = $sel->can_read;
         }
