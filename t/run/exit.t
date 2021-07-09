@@ -64,6 +64,7 @@ if (!$vms_exit_mode) {
   SKIP: {
     skip("No POSIX", 3) unless $posix_ok;
     skip("No POSIX wait macros", 3) unless $wait_macros_ok;
+    skip("On haiku \$? != \${^CHILD_ERROR_NATIVE}", 3) if $^O eq 'haiku';
     ok(POSIX::WIFEXITED(${^CHILD_ERROR_NATIVE}), "WIFEXITED");
     ok(!POSIX::WIFSIGNALED(${^CHILD_ERROR_NATIVE}), "WIFSIGNALED");
     is(POSIX::WEXITSTATUS(${^CHILD_ERROR_NATIVE}), 42, "WEXITSTATUS");
@@ -85,6 +86,7 @@ if (!$vms_exit_mode) {
     SKIP: {
       skip("No POSIX", 3) unless $posix_ok;
       skip("No POSIX wait macros", 3) unless $wait_macros_ok;
+      skip("On haiku \$? != \${^CHILD_ERROR_NATIVE}", 3) if $^O eq 'haiku';
       ok(!POSIX::WIFEXITED(${^CHILD_ERROR_NATIVE}), "WIFEXITED");
       ok(POSIX::WIFSIGNALED(${^CHILD_ERROR_NATIVE}), "WIFSIGNALED");
       is(POSIX::WTERMSIG(${^CHILD_ERROR_NATIVE}), 15, "WTERMSIG");
