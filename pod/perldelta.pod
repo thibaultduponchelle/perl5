@@ -378,6 +378,13 @@ Now C<strftime> stringifies its first argument, as before. [GH #22498]
 
 XXX
 
+=item *
+
+Using C<goto> to tail call, or using the call_sv() and related APIs to
+call, any of trim(), refaddr(), reftype(), ceil(), floor() or
+stringify() in the C<builtin::> package would crash or assert due to a
+C<TARG> handling bug. [GH #22542]
+
 =back
 
 =head1 Known Problems
