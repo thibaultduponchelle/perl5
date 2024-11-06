@@ -1,0 +1,14 @@
+=head3 PAUSE account with pumpkin status
+
+Make sure you have a PAUSE account suitable for uploading a perl release.
+If you don't have a PAUSE account, then request one:
+
+ https://pause.perl.org/pause/query?ACTION=request_id
+
+Check that your account is allowed to upload perl distros: go to
+L<https://pause.perl.org/pause/authenquery?ACTION=who_pumpkin> and check that
+your PAUSE ID is listed there.  If not, ask Andreas KE<0xf6>nig to add your ID
+to the list of people allowed to upload something called perl.  You can find
+Andreas' email address at:
+
+ https://pause.perl.org/pause/query?ACTION=pause_04imprint
