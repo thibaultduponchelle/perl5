@@ -24,40 +24,6 @@ POD.
  perl Porting/make-rmg-checklist --html \
      --version [5.X.Y-RC#] > /tmp/rmg.html
 
-=head1 SYNOPSIS
-
-This document describes the series of tasks required - some automatic, some
-manual - to produce a perl release of some description, be that a release
-candidate, or final, numbered release of maint or blead.
-
-New releases of perl are made each month on the 20th by a release engineer
-appointed by the Steering Council.  The release engineer roster and schedule
-can be found in Porting/release_schedule.pod.
-
-This document both helps as a check-list for the release engineer
-and is a base for ideas on how the various tasks could be automated
-or distributed.
-
-The checklist of a typical release cycle is as follows:
-
- (5.10.1 is released, and post-release actions have been done)
-
- ...time passes...
-
- a few weeks before the release, a number of steps are performed,
-     including bumping the version to 5.10.2
-
- ...a few weeks pass...
-
- perl-5.10.2-RC1 is released
-
- perl-5.10.2 is released
-
- post-release actions are performed, including creating new
-     perldelta.pod
-
- ... the cycle continues ...
-
 =head1 DETAILS
 
 Some of the tasks described below apply to all four types of
