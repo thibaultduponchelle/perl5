@@ -82,7 +82,7 @@ with a whole bunch of extra post-release steps, even more than for MAINT.
 Before you can make an official release of perl, there are a few
 hoops you need to jump through:
 
-L<PAUSE account with pumpkin status|rmg/pause-pumpkin-bit.pod>
+L<PAUSE account with pumpkin status|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/pause-pumpkin-bit.pod>
 
 L<GitHub access|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/github-access.pod>
 
