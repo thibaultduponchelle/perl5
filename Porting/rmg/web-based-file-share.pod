@@ -1,0 +1,10 @@
+=head3 Web-based file share
+
+You will need to be able to share tarballs with #p5p members for
+pre-release testing, and you may wish to upload to PAUSE via URL.
+Make sure you have a way of sharing files, such as a web server or
+file-sharing service.
+
+If you use Dropbox, you can append "raw=1" as a parameter to their usual
+sharing link to allow direct download (albeit with redirects).
+
