@@ -1,0 +1,4 @@
+=head3 Quotation for release announcement epigraph
+
+You will need a quotation to use as an epigraph to your release announcement.
+It will live forever (along with Perl), so make it a good one.
