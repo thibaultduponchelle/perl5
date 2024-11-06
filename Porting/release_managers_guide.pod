@@ -171,7 +171,7 @@ L<Step 2|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/st
 
 L<Step 3|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 4|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod
+L<Step 4|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 =head2 Major release
 
