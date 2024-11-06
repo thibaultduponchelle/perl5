@@ -181,7 +181,7 @@ L<Update perlhist|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porti
 
 L<Update patchlevel.h|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 =head2 Major release
 
@@ -195,7 +195,7 @@ L<Update perlhist.pod|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/P
 
 L<Update patchlevel.h|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 =head1 SOURCE
 
