@@ -1,0 +1,8 @@
+=head3 Email account subscribed to perl5-porters
+
+In order for your release announcement email to be delivered to the
+perl5-porters distribution list, the email address that you intend to
+send from must be subscribed to the list.
+
+Instructions for subscribing can be found here:
+L<List: perl5-porters|https://lists.perl.org/list/perl5-porters.html>
