@@ -1,0 +1,6 @@
+=head3 Install the previous version of perl
+
+During the testing phase of the release you have created, you will be
+asked to compare the installed files with a previous install. Save yourself
+some time on release day, and have a (clean) install of the previous
+version ready.
