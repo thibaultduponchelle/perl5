@@ -147,45 +147,55 @@ L<Email account subscribed to perl5-porters|https://github.com/thibaultduponchel
 
 =head2 Blead point release
 
-L<Step 1|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Dual-life CPAN module synchronisation|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 2|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 3|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perldelta|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Build the tarball|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 =head2 Maintenance release
 
-L<Step 1|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Dual-life CPAN module synchronisation|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 2|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 3|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perlgov|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 4|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Build the tarball|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 =head2 Release Candidate
 
-L<Step 1|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Dual-life CPAN module synchronisation|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 2|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 3|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perldelta|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 4|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perlhist|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Update patchlevel.h|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod
 
 =head2 Major release
 
-L<Step 1|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Dual-life CPAN module synchronisation|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 2|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 3|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perldelta|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 4|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update perlhist.pod|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 5|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Update patchlevel.h|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
-L<Step 6|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+L<Announce to p5p|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod
 
 =head1 SOURCE
 
