@@ -1,1 +1,18 @@
-This and this and that
+=head3 Do this and that
+
+Add an entry to F<pod/perlhist.pod> with the release date, e.g.:
+
+ David    5.10.1       2009-Aug-06
+
+List yourself in the left-hand column, and if this is the first release
+that you've ever done, make sure that your name is listed in the section
+entitled C<THE KEEPERS OF THE PUMPKIN>.
+
+I<If you're making a BLEAD-FINAL release>, also update the "SELECTED
+RELEASE SIZES" section with the output of
+F<Porting/perlhist_calculate.pl>.
+
+Be sure to commit your changes:
+
+ $ git commit -m 'Add new release to perlhist' pod/perlhist.pod
+
