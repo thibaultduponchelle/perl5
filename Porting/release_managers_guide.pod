@@ -143,6 +143,10 @@ L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/
 
 L<Update perldelta|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
+L<Update AUTHORS|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Build the tarball|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
 L<Update perlhist|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 L<Update patchlevel.h|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
@@ -156,6 +160,10 @@ L<Dual-life CPAN module synchronisation|https://github.com/thibaultduponchelle/p
 L<Monitor smoke tests for failures|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 L<Update perldelta|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Update AUTHORS|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
+
+L<Build the tarball|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
 L<Update perlhist.pod|https://github.com/thibaultduponchelle/perl5/blob/rmg-v2/Porting/rmg/step.pod>
 
