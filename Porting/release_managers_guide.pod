@@ -133,46 +133,14 @@ with a whole bunch of extra post-release steps, even more than for MAINT.
 Before you can make an official release of perl, there are a few
 hoops you need to jump through:
 
-=head3 PAUSE account with pumpkin status
+L<PAUSE account with pumpkin status|rmg/pause-pumpkin-bit.pod>
 
-Make sure you have a PAUSE account suitable for uploading a perl release.
-If you don't have a PAUSE account, then request one:
+L<GitHub access|rmg/github-access.pod>
 
- https://pause.perl.org/pause/query?ACTION=request_id
+L<Web-based file share|rmg/web-based-file-share.pod>
 
-Check that your account is allowed to upload perl distros: go to
-L<https://pause.perl.org/pause/authenquery?ACTION=who_pumpkin> and check that
-your PAUSE ID is listed there.  If not, ask Andreas KE<0xf6>nig to add your ID
-to the list of people allowed to upload something called perl.  You can find
-Andreas' email address at:
+L<Quotation for release announcement epigraph|rmg/quotation-for-epigraph.pod>
 
- https://pause.perl.org/pause/query?ACTION=pause_04imprint
-
-=head3 GitHub access
-
-You will need a working C<git> installation, checkout of the perl
-git repository and perl commit bit.  For information about working
-with perl and git, see L<perlgit>.
-
-If you are not yet a perl committer, you won't be able to make a
-release.  You will need to have a GitHub account (if you don't have one)
-and contact the Steering Council with your username to get membership in the
-L<< Perl-Releasers|https://github.com/orgs/Perl/teams/perl-releasers >> team.
-
-=head3 Web-based file share
-
-You will need to be able to share tarballs with #p5p members for
-pre-release testing, and you may wish to upload to PAUSE via URL.
-Make sure you have a way of sharing files, such as a web server or
-file-sharing service.
-
-If you use Dropbox, you can append "raw=1" as a parameter to their usual
-sharing link to allow direct download (albeit with redirects).
-
-=head3 Quotation for release announcement epigraph
-
-You will need a quotation to use as an epigraph to your release announcement.
-It will live forever (along with Perl), so make it a good one.
 
 =head3 Install the previous version of perl
 
