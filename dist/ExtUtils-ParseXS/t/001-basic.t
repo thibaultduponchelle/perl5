@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 472;
+use Test::More tests => 482;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -2829,6 +2829,67 @@ EOF
             [ 0, 0, qr/\bRETVAL\s*=\s*\Qfoo(AAA, CCC);/,      "autocall" ],
         ],
 
+
+    );
+
+    test_many($preamble, 'XS_Foo_', \@test_fns);
+}
+
+{
+    # Test weird packing facility: return type array(type,nitems)
+
+    my $preamble = Q(<<'EOF');
+        |MODULE = Foo PACKAGE = Foo
+        |
+        |PROTOTYPES:  DISABLE
+        |
+EOF
+
+    my @test_fns = (
+
+        [
+            "array(int,5)",
+            [ Q(<<'EOF') ],
+                |array(int,5)
+                |foo()
+EOF
+            [ 0, 0, qr/int\s*\*\s+RETVAL;/,      "RETVAL is int*" ],
+            [ 0, 0, qr/sv_setpvn\(.*,\s*5\s*\*\s*\Qsizeof(int));/,
+                                                 "return packs 5 ints" ],
+        ],
+
+        [
+            "array(int*, expr)",
+            [ Q(<<'EOF') ],
+                |array(int*, FOO_SIZE)
+                |foo()
+EOF
+            [ 0, 0, qr/int\s*\*\s*\*\s+RETVAL;/, "RETVAL is int**" ],
+            [ 0, 0, qr/sv_setpvn\(.*,\s*FOO_SIZE\s*\*\s*sizeof\(int\s*\*\s*\)\);/,
+                                                "return packs FOO_SIZE int*s" ],
+        ],
+
+        [
+            "array() as param type",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(abc)
+                |    array(int,5) abc
+EOF
+            [ 1, 0, qr/Could not find a typemap for C type/, " no find type" ],
+        ],
+
+        [
+            "array() in output override isn't special",
+            [ Q(<<'EOF') ],
+                |short
+                |foo()
+                |    OUTPUT:
+                |        RETVAL array(int,5)
+EOF
+            [ 0, 0, qr/short\s+RETVAL;/,      "RETVAL is short" ],
+            [ 0, 0, qr/\Qarray(int,5)/,       "return expression is unchanged" ],
+        ],
 
     );
 
