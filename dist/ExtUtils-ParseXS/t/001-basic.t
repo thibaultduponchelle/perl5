@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 482;
+use Test::More tests => 531;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -2891,6 +2891,204 @@ EOF
             [ 0, 0, qr/\Qarray(int,5)/,       "return expression is unchanged" ],
         ],
 
+    );
+
+    test_many($preamble, 'XS_Foo_', \@test_fns);
+}
+
+{
+    # Test weird packing facility: DO_ARRAY_ELEM
+
+    my $preamble = Q(<<'EOF');
+        |MODULE = Foo PACKAGE = Foo
+        |
+        |PROTOTYPES:  DISABLE
+        |
+        |TYPEMAP: <<EOF
+        |intArray *        T_ARRAY
+        |longArray *       T_ARRAY
+        |
+        |myiv              T_IV
+        |myivArray *       T_ARRAY
+        |
+        |blah              T_BLAH
+        |blahArray *       T_ARRAY
+        |
+        |nosuchtypeArray * T_ARRAY
+        |
+        |shortArray *       T_DAE
+        |
+        |INPUT
+        |T_BLAH
+        |   $var = my_get_blah($arg);
+        |
+        |T_DAE
+        |   IN($var,$type,$ntype,$subtype,$arg,$argoff){DO_ARRAY_ELEM}
+        |
+        |OUTPUT
+        |T_BLAH
+        |   my_set_blah($arg, $var);
+        |
+        |T_DAE
+        |   OUT($var,$type,$ntype,$subtype,$arg){DO_ARRAY_ELEM
+        |
+        |EOF
+EOF
+
+    my @test_fns = (
+
+        [
+            "T_ARRAY long input",
+            [ Q(<<'EOF') ],
+                |char *
+                |foo(longArray * abc)
+EOF
+            [ 0, 0, qr/longArray\s*\*\s*abc;/,      "abc is longArray*" ],
+            [ 0, 0, qr/abc\s*=\s*longArrayPtr\(/,   "longArrayPtr called" ],
+            [ 0, 0, qr/abc\[ix_abc.*\]\s*=\s*.*\QSvIV(ST(ix_abc))/,
+                                                    "abc[i] set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+        [
+            "T_ARRAY long output",
+            [ Q(<<'EOF') ],
+                |longArray *
+                |foo()
+EOF
+            [ 0, 0, qr/longArray\s*\*\s*RETVAL;/,   "RETVAL is longArray*" ],
+            [ 0, 1, qr/longArrayPtr/,               "longArrayPtr NOT called" ],
+            [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
+                                                    "ST(i) set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+
+        [
+            "T_ARRAY myiv input",
+            [ Q(<<'EOF') ],
+                |char *
+                |foo(myivArray * abc)
+EOF
+            [ 0, 0, qr/myivArray\s*\*\s*abc;/,      "abc is myivArray*" ],
+            [ 0, 0, qr/abc\s*=\s*myivArrayPtr\(/,   "myivArrayPtr called" ],
+            [ 0, 0, qr/abc\[ix_abc.*\]\s*=\s*.*\QSvIV(ST(ix_abc))/,
+                                                    "abc[i] set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+        [
+            "T_ARRAY myiv output",
+            [ Q(<<'EOF') ],
+                |myivArray *
+                |foo()
+EOF
+            [ 0, 0, qr/myivArray\s*\*\s*RETVAL;/,   "RETVAL is myivArray*" ],
+            [ 0, 1, qr/myivArrayPtr/,               "myivArrayPtr NOT called" ],
+            [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
+                                                    "ST(i) set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+
+        [
+            "T_ARRAY blah input",
+            [ Q(<<'EOF') ],
+                |char *
+                |foo(blahArray * abc)
+EOF
+            [ 0, 0, qr/blahArray\s*\*\s*abc;/,      "abc is blahArray*" ],
+            [ 0, 0, qr/abc\s*=\s*blahArrayPtr\(/,   "blahArrayPtr called" ],
+            [ 0, 0, qr/abc\[ix_abc.*\]\s*=\s*.*\Qmy_get_blah(ST(ix_abc))/,
+                                                    "abc[i] set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+        [
+            "T_ARRAY blah output",
+            [ Q(<<'EOF') ],
+                |blahArray *
+                |foo()
+EOF
+            [ 0, 0, qr/blahArray\s*\*\s+RETVAL;/,   "RETVAL is blahArray*" ],
+            [ 0, 1, qr/blahArrayPtr/,               "blahArrayPtr NOT called" ],
+            [ 0, 0, qr/\Qmy_set_blah(ST(ix_RETVAL), RETVAL[ix_RETVAL]);/,
+                                                    "ST(i) set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+
+        [
+            "T_ARRAY nosuchtype input",
+            [ Q(<<'EOF') ],
+                |char *
+                |foo(nosuchtypeArray * abc)
+EOF
+            [ 1, 0, qr/Could not find a typemap for C type 'nosuchtype'/,
+                                                    "no such type" ],
+        ],
+        [
+            "T_ARRAY nosuchtype output",
+            [ Q(<<'EOF') ],
+                |nosuchtypeArray *
+                |foo()
+EOF
+            [ 1, 0, qr/Could not find a typemap for C type 'nosuchtype'/,
+                                                    "no such type" ],
+        ],
+
+        # test DO_ARRAY_ELEM in a typemap other than T_ARRAY.
+        #
+        # XXX It's not clear whether DO_ARRAY_ELEM should be processed
+        # in typemap definitions generally, rather than just in the
+        # T_ARRAY definition. Currently it is, but DO_ARRAY_ELEM isn't
+        # documented, and was clearly put into place as a hack to make
+        # T_ARRAY work. So these tests represent the *current*
+        # behaviour, but don't necessarily endorse that behaviour. These
+        # tests ensure that any change in behaviour is deliberate rather
+        # than accidental.
+        [
+            "T_DAE input",
+            [ Q(<<'EOF') ],
+                |char *
+                |foo(shortArray * abc)
+EOF
+            [ 0, 0, qr/shortArray\s*\*\s*abc;/,      "abc is shortArray*" ],
+            # calling fooArrayPtr() is part of the T_ARRAY typemap,
+            # not part of the general mechanism
+            [ 0, 1, qr/shortArrayPtr\(/,             "no shortArrayPtr call" ],
+            [ 0, 0, qr/\{\s*abc\[ix_abc.*\]\s*=\s*.*\QSvIV(ST(ix_abc))\E\s*\n?\s*\}/,
+                                                    "abc[i] set" ],
+            [ 0, 0, qr/\QIN(abc,shortArray *,shortArrayPtr,short,ST(0),0)/,
+                                                    "template vars ok" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+        [
+            "T_DAE output",
+            [ Q(<<'EOF') ],
+                |shortArray *
+                |foo()
+EOF
+            [ 0, 0, qr/shortArray\s*\*\s*RETVAL;/,  "RETVAL is shortArray*" ],
+            [ 0, 1, qr/shortArrayPtr\(/,            "shortArrayPtr NOT called" ],
+            [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
+                                                    "ST(i) set" ],
+            [ 0, 0, qr/\QOUT(RETVAL,shortArray *,shortArrayPtr,short,ST(0))/,
+                                                    "template vars ok" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+
+        # Use overridden return code with an OUTPUT line.
+        # XXX Currently the override code is ignored. This
+        # is probably wrong.
+        [
+            "T_ARRAY override output",
+            [ Q(<<'EOF') ],
+                |intArray *
+                |foo()
+                |    OUTPUT:
+                |      RETVAL my_int_set($arg, $var)
+EOF
+            [ 0, 0, qr/intArray\s*\*\s*RETVAL;/,   "RETVAL is intArray*" ],
+            [ 0, 1, qr/intArrayPtr/,               "intArrayPtr NOT called" ],
+            [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
+                                                    "ST(i) set" ],
+            [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
     );
 
     test_many($preamble, 'XS_Foo_', \@test_fns);
