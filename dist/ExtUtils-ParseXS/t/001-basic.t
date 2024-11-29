@@ -2930,7 +2930,7 @@ EOF
         |   my_set_blah($arg, $var);
         |
         |T_DAE
-        |   OUT($var,$type,$ntype,$subtype,$arg){DO_ARRAY_ELEM
+        |   OUT($var,$type,$ntype,$subtype,$arg){DO_ARRAY_ELEM}
         |
         |EOF
 EOF

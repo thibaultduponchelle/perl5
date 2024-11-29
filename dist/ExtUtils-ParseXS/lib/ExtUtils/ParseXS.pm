@@ -3240,7 +3240,7 @@ sub generate_output {
   #   OUTLIST argname
   #   argname
 
-  if ($expr =~ /DO_ARRAY_ELEM/) {
+  if ($expr =~ /\bDO_ARRAY_ELEM\b/) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
     # explain the similar code for the DO_ARRAY_ELEM hack there.
     my $subtypemap = $typemaps->get_typemap(ctype => $subtype);
@@ -3260,7 +3260,7 @@ sub generate_output {
     $subexpr =~ s/\$arg/ST(ix_$var)/g;
     $subexpr =~ s/\$var/${var}\[ix_$var]/g;
     $subexpr =~ s/\n\t/\n\t\t/g;
-    $expr =~ s/DO_ARRAY_ELEM\n/$subexpr/;
+    $expr =~ s/\bDO_ARRAY_ELEM\b/$subexpr/;
     print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
     print "\t\tSvSETMAGIC(ST(ix_$var));\n" if $do_setmagic;
   }

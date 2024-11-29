@@ -331,7 +331,7 @@ sub as_code {
         # Note: This gruesome bit either needs heavy rethinking or
         # documentation. I vote for the former. --Steffen, 2011
         # Seconded, DAPM 2024.
-        if ($expr =~ /DO_ARRAY_ELEM/) {
+        if ($expr =~ /\bDO_ARRAY_ELEM\b/) {
             my $subtypemap  = $typemaps->get_typemap(ctype => $subtype);
             if (not $subtypemap) {
                 $pxs->report_typemap_failure($typemaps, $subtype);
@@ -353,7 +353,7 @@ sub as_code {
             $subexpr =~ s/\n\t/\n\t\t/g;
             $subexpr =~ s/is not of (.*\")/[arg %d] is not of $1, ix_$var + 1/g;
             $subexpr =~ s/\$var/${var}\[ix_$var - $argoff]/;
-            $expr =~ s/DO_ARRAY_ELEM/$subexpr/;
+            $expr =~ s/\bDO_ARRAY_ELEM\b/$subexpr/;
         }
   
         if ($expr =~ m#/\*.*scope.*\*/#i) {  # "scope" in C comments
