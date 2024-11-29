@@ -3243,6 +3243,23 @@ sub generate_output {
   if ($expr =~ /\bDO_ARRAY_ELEM\b/) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
     # explain the similar code for the DO_ARRAY_ELEM hack there.
+
+    if ($var ne 'RETVAL') {
+      # typemap templates containing DO_ARRAY_ELEM are assumed to contain
+      # a loop which explicitly stores a new mortal SV at each of the
+      # locations ST(0) .. ST(n-1) then uses the code from the typemap
+      # for the underlying array element to type to set each SV' value.
+      # This is a horrible hack for RETVAL, would probably fail with
+      # OUTLIST due oto stack offsets being wrong, and definitely
+      # would fail with OUT, which is supposed to be updating parameter
+      # SVs, not pushing anything on the stack. So forbid all except
+      # RETVAL.
+      $self->blurt("Can't use typemap containing DO_ARRAY_ELEM for "
+                    . (defined $out_num ? "OUTLIST" : "OUT")
+                    . " parameter");
+      return;
+    }
+
     my $subtypemap = $typemaps->get_typemap(ctype => $subtype);
     if (not $subtypemap) {
       $self->report_typemap_failure($typemaps, $subtype);

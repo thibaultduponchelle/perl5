@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 531;
+use Test::More tests => 533;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -3088,6 +3088,26 @@ EOF
             [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
                                                     "ST(i) set" ],
             [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
+        ],
+
+        # for OUT and OUTLIST arguments, don't process DO
+        [
+            "T_ARRAY OUT",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(OUT intArray * abc)
+EOF
+            [ 1, 0, qr/Can't use typemap containing DO_ARRAY_ELEM for OUT parameter/,
+                    "gives err" ],
+        ],
+        [
+            "T_ARRAY OUT",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(OUTLIST intArray * abc)
+EOF
+            [ 1, 0, qr/Can't use typemap containing DO_ARRAY_ELEM for OUTLIST parameter/,
+                    "gives err" ],
         ],
     );
 
