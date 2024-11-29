@@ -3545,7 +3545,7 @@ sub generate_output {
     print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
   }
 
-  elsif ($arg =~ /^ST\(\d+\)$/) {
+  else {
     # This is a normal OUTPUT var - i.e. a named parameter whose
     # corresponding arg on the stack should be updated with the
     # parameter's current value by using the code contained in the
@@ -3559,6 +3559,11 @@ sub generate_output {
     #
     #  which means that if we hit this branch, $evalexpr will have been
     #  expanded to something like sv_setsv(ST(2), boolSV(foo))
+
+    unless (defined $num) {
+      $self->blurt("Internal error: OUT parameter has undefined argument number");
+      return;
+    }
 
     # Use the code on the OUTPUT line if specified, otherwise use the
     # typemap
