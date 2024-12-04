@@ -3182,8 +3182,20 @@ sub generate_output {
     # Handle the implicit array return type, "array(type, nlelem)"
     # specially. It returns a mortal string which is a copy of $var,
     # which it assumes is a C array of type 'type' with 'nelem' elements.
+
+    my ($atype, $nitems) = ($1, $2);
+
+    if ($var ne 'RETVAL') {
+      # This special type is intended for use only as the return type of
+      # an XSUB
+      $self->blurt("Can't use array(type,nitems) type for "
+                    . (defined $out_num ? "OUTLIST" : "OUT")
+                    . " parameter");
+      return;
+    }
+
     print "\t$arg = sv_newmortal();\n";
-    print "\tsv_setpvn($arg, (char *)$var, $2 * sizeof($1));\n";
+    print "\tsv_setpvn($arg, (char *)$var, $nitems * sizeof($atype));\n";
     print "\tSvSETMAGIC($arg);\n" if $do_setmagic;
     return;
   }

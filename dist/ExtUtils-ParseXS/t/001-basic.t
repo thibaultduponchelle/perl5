@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 533;
+use Test::More tests => 535;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -2891,6 +2891,25 @@ EOF
             [ 0, 0, qr/\Qarray(int,5)/,       "return expression is unchanged" ],
         ],
 
+        [
+            "array() OUT",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(OUT array(int,5) AAA)
+EOF
+            [ 1, 0, qr/\QCan't use array(type,nitems) type for OUT parameter/,
+                        "got err" ],
+        ],
+
+        [
+            "array() OUTLIST",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(OUTLIST array(int,5) AAA)
+EOF
+            [ 1, 0, qr/\QCan't use array(type,nitems) type for OUTLIST parameter/,
+                    "got err" ],
+        ],
     );
 
     test_many($preamble, 'XS_Foo_', \@test_fns);
