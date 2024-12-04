@@ -3245,13 +3245,6 @@ sub generate_output {
   # trailing semicolons and remove any leading white space before a '#'.
   my $expr = $outputmap->cleaned_code;
 
-  # In the four branches of this big if/else, handle the four types of
-  # var:
-  #   the T_ARRAY / DO_ARRAY_ELEM hack
-  #   RETVAL
-  #   OUTLIST argname
-  #   argname
-
   if ($expr =~ /\bDO_ARRAY_ELEM\b/) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
     # explain the similar code for the DO_ARRAY_ELEM hack there.
@@ -3290,10 +3283,23 @@ sub generate_output {
     $subexpr =~ s/\$var/${var}\[ix_$var]/g;
     $subexpr =~ s/\n\t/\n\t\t/g;
     $expr =~ s/\bDO_ARRAY_ELEM\b/$subexpr/;
+
+    # We do our own code emitting and return here (rather than control
+    # passing on to normal RETVAL processing) since that processing is
+    # expecting to push a single temp onto the stack, while our code
+    # pushes several temps.
     print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
     print "\t\tSvSETMAGIC(ST(ix_$var));\n" if $do_setmagic;
+    return;
   }
-  elsif ($var eq 'RETVAL') {
+
+  # In the three branches of this big if/else, handle the three types of
+  # var:
+  #   RETVAL
+  #   OUTLIST argname
+  #   argname
+
+  if ($var eq 'RETVAL') {
     # If the var is called RETVAL, then we return its value on the
     # stack
 
