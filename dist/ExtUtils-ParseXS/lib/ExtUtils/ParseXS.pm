@@ -3245,7 +3245,7 @@ sub generate_output {
   # trailing semicolons and remove any leading white space before a '#'.
   my $expr = $outputmap->cleaned_code;
 
-  if ($expr =~ /\bDO_ARRAY_ELEM\b/) {
+  if ($expr =~ /\bDO_ARRAY_ELEM\b/ and !defined $output_code) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
     # explain the similar code for the DO_ARRAY_ELEM hack there.
 

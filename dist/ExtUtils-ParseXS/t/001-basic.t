@@ -3092,20 +3092,17 @@ EOF
         ],
 
         # Use overridden return code with an OUTPUT line.
-        # XXX Currently the override code is ignored. This
-        # is probably wrong.
         [
             "T_ARRAY override output",
             [ Q(<<'EOF') ],
                 |intArray *
                 |foo()
                 |    OUTPUT:
-                |      RETVAL my_int_set($arg, $var)
+                |      RETVAL my_intptr_set(ST(0), RETVAL[0]);
 EOF
             [ 0, 0, qr/intArray\s*\*\s*RETVAL;/,   "RETVAL is intArray*" ],
             [ 0, 1, qr/intArrayPtr/,               "intArrayPtr NOT called" ],
-            [ 0, 0, qr/\Qsv_setiv(ST(ix_RETVAL), (IV)RETVAL[ix_RETVAL]);/,
-                                                    "ST(i) set" ],
+            [ 0, 0, qr/\Qmy_intptr_set(ST(0), RETVAL[0]);/, "ST(0) set" ],
             [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
         ],
 
