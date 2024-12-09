@@ -3171,7 +3171,7 @@ sub generate_output {
     return;
   }
 
-  my $arg = $self->ST($num);
+  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
 
   my $typemaps = $self->{typemaps_object};
 
@@ -3547,7 +3547,6 @@ sub generate_output {
     # Indicates that this is an OUTLIST value, so an SV with the value
     # should be pushed onto the stack
     print "\tPUSHs(sv_newmortal());\n";
-    $eval_vars->{arg} = $self->ST($out_num + 1);
     print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
   }
 
