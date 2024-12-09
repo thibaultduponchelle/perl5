@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 535;
+use Test::More tests => 538;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -2877,6 +2877,18 @@ EOF
                 |    array(int,5) abc
 EOF
             [ 1, 0, qr/Could not find a typemap for C type/, " no find type" ],
+        ],
+
+        [
+            "array() can be overriden by OUTPUT",
+            [ Q(<<'EOF') ],
+                |array(int,5)
+                |foo()
+                |    OUTPUT:
+                |        RETVAL my_setintptr(ST(0), RETVAL);
+EOF
+            [ 0, 0, qr/int\s*\*\s+RETVAL;/,             "RETVAL is int*" ],
+            [ 0, 0, qr/\Qmy_setintptr(ST(0), RETVAL);/, "override honoured" ],
         ],
 
         [

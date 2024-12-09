@@ -3185,6 +3185,16 @@ sub generate_output {
 
     my ($atype, $nitems) = ($1, $2);
 
+    if (defined $output_code) {
+      my $outlist_count = grep {    defined $_->{in_out}
+                                 && $_->{in_out} =~ /OUTLIST$/
+                               }
+                               @{$self->{xsub_sig}{params}};
+      print "\t$output_code\n";
+      print "\t++SP;\n" if $outlist_count;
+      return;
+    }
+
     if ($var ne 'RETVAL') {
       # This special type is intended for use only as the return type of
       # an XSUB
