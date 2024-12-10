@@ -3166,63 +3166,12 @@ sub generate_output {
     $type = $self->{xsub_return_type};
   }
 
+  # ------------------------------------------------------------------
+  # Do initial processing of $type, including creating various derived
+  # values
+
   unless (defined $type) {
     $self->blurt("Can't determine output type for '$var'");
-    return;
-  }
-
-  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
-
-  my $typemaps = $self->{typemaps_object};
-
-  # whitespace-tidy the type
-  $type = ExtUtils::Typemaps::tidy_type($type);
-
-  if ($type =~ /^array\(([^,]*),(.*)\)/) {
-    # Handle the implicit array return type, "array(type, nlelem)"
-    # specially. It returns a mortal string which is a copy of $var,
-    # which it assumes is a C array of type 'type' with 'nelem' elements.
-
-    my ($atype, $nitems) = ($1, $2);
-
-    if (defined $output_code) {
-      my $outlist_count = grep {    defined $_->{in_out}
-                                 && $_->{in_out} =~ /OUTLIST$/
-                               }
-                               @{$self->{xsub_sig}{params}};
-      print "\t$output_code\n";
-      print "\t++SP;\n" if $outlist_count;
-      return;
-    }
-
-    if ($var ne 'RETVAL') {
-      # This special type is intended for use only as the return type of
-      # an XSUB
-      $self->blurt("Can't use array(type,nitems) type for "
-                    . (defined $out_num ? "OUTLIST" : "OUT")
-                    . " parameter");
-      return;
-    }
-
-    print "\t$arg = sv_newmortal();\n";
-    print "\tsv_setpvn($arg, (char *)$var, $nitems * sizeof($atype));\n";
-    print "\tSvSETMAGIC($arg);\n" if $do_setmagic;
-    return;
-  }
-
-  # Handle a normal return type via a typemap.
-
-  # Get the output map entry for this type; complain if not found.
-  my $typemap = $typemaps->get_typemap(ctype => $type);
-  if (not $typemap) {
-    $self->report_typemap_failure($typemaps, $type);
-    return;
-  }
-
-  my $outputmap = $typemaps->get_outputmap(xstype => $typemap->xstype);
-  if (not $outputmap) {
-    $self->blurt("Error: No OUTPUT definition for type '$type', typekind '"
-                 . $typemap->xstype . "' found");
     return;
   }
 
@@ -3236,10 +3185,77 @@ sub generate_output {
   # the typemap template (although undocumented and virtually unused).
   (my $subtype = $ntype) =~ s/(?:Array)?(?:Ptr)?$//;
 
-  # The type looked up in the eval is Foo__Bar rather than Foo::Bar
-  $type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
+  # whitespace-tidy the type
+  $type = ExtUtils::Typemaps::tidy_type($type);
 
-  # Specify the environment for when the typemap template is evalled.
+  # The type looked up in the eval is Foo__Bar rather than Foo::Bar
+  my $eval_type = $type;
+  $eval_type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
+
+  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
+
+
+  # ------------------------------------------------------------------
+  # Find the template code (pre any eval) and store it in $expr.
+  # This is typically obtained via a typemap lookup, but can be overridden.
+
+  my $expr;
+  my $outputmap;
+  my $typemaps = $self->{typemaps_object};
+
+  if (defined $output_code) {
+    # an override on an OUTPUT line: use that instead of the typemap
+    $expr = $output_code;
+  }
+  elsif ($type =~ /^array\(([^,]*),(.*)\)/) {
+    # Handle the implicit array return type, "array(type, nlelem)"
+    # specially rather than using a typemap entry. It returns a mortal
+    # string which is a copy of $var, which it assumes is a C array of
+    # type 'type' with 'nelem' elements.
+
+    my ($atype, $nitems) = ($1, $2);
+
+    if ($var ne 'RETVAL') {
+      # This special type is intended for use only as the return type of
+      # an XSUB
+      $self->blurt("Can't use array(type,nitems) type for "
+                    . (defined $out_num ? "OUTLIST" : "OUT")
+                    . " parameter");
+      return;
+    }
+
+    $expr = "sv_setpvn($arg, (char *)$var, $nitems * sizeof($atype));";
+    # XXX for now, output the code directly.
+    print "\t$arg = sv_newmortal();\n";
+    print "\t$expr\n";
+    print "\tSvSETMAGIC($arg);\n" if $do_setmagic;
+    return;
+  }
+  else {
+  # Handle a normal return type via a typemap.
+
+  # Get the output map entry for this type; complain if not found.
+  my $typemap = $typemaps->get_typemap(ctype => $type);
+  if (not $typemap) {
+    $self->report_typemap_failure($typemaps, $type);
+    return;
+  }
+
+  $outputmap = $typemaps->get_outputmap(xstype => $typemap->xstype);
+  if (not $outputmap) {
+    $self->blurt("Error: No OUTPUT definition for type '$type', typekind '"
+                 . $typemap->xstype . "' found");
+    return;
+  }
+
+  # Get the text of the typemap template, with a few transformations to
+  # make it work better with fussy C compilers. In particular, strip
+  # trailing semicolons and remove any leading white space before a '#'.
+
+  $expr = $outputmap->cleaned_code;
+  }
+
+  # Specify the environment for if/when the code template is evalled.
   my $eval_vars = {
                     num         => $num,
                     var         => $var,
@@ -3247,13 +3263,11 @@ sub generate_output {
                     subtype     => $subtype,
                     ntype       => $ntype,
                     arg         => $arg,
-                    type        => $type,
+                    type        => $eval_type,
                   };
 
-  # Get the text of the typemap template, with a few transformations to
-  # make it work better with fussy C compilers. In particular, strip
-  # trailing semicolons and remove any leading white space before a '#'.
-  my $expr = $outputmap->cleaned_code;
+  # ------------------------------------------------------------------
+  # Handle DO_ARRAY_ELEM token as a very special case
 
   if ($expr =~ /\bDO_ARRAY_ELEM\b/ and !defined $output_code) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
@@ -3303,6 +3317,7 @@ sub generate_output {
     return;
   }
 
+  # ------------------------------------------------------------------
   # In the three branches of this big if/else, handle the three types of
   # var:
   #   RETVAL
@@ -3339,7 +3354,8 @@ sub generate_output {
     #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
     #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
 
-    my $target = $self->{config_optimize} && $outputmap->targetable;
+    my $target = $self->{config_optimize}
+                  && defined $outputmap && $outputmap->targetable;
 
     if ($target) {
       # Emit targ optimisation: basically, emit a PUSHi() or whatever,
@@ -3350,7 +3366,7 @@ sub generate_output {
       # Expand it via eval.
       my $what = $self->eval_output_typemap_code(
         qq("$target->{what}"),
-        {var => $var, type => $type}
+        {var => $var, type => $eval_type}
       );
 
       if (not $target->{with_size} and $target->{type} eq 'p') {
@@ -3372,7 +3388,7 @@ sub generate_output {
         $tsize = '' unless defined $tsize;
         $tsize = $self->eval_output_typemap_code(
           qq("$tsize"),
-          {var => $var, type => $type}
+          {var => $var, type => $eval_type}
         );
 
         print "\tXSprePUSH;\n" unless $outlist_count;
