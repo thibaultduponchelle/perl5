@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 538;
+use Test::More tests => 539;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1862,6 +1862,20 @@ EOF
 EOF
             [ 0, 0, qr/\QPUSHs(my_newsviv(RETVAL));/,   "uses code" ],
             [ 0, 0, qr/\QXSRETURN(1)/,                  "has XSRETURN" ],
+        ],
+
+        [
+            "OUTPUT RETVAL with code and unknown type",
+            [ Q(<<'EOF') ],
+                |blah
+                |foo(int a)
+                |    CODE:
+                |      RETVAL = 99
+                |    OUTPUT:
+                |      RETVAL PUSHs(my_newsviv(RETVAL));
+EOF
+            # XXX this shouldn't give an error - to be fixed shortly
+            [ 1, 0, qr/\QCould not find a typemap for C type 'blah'/, "err" ],
         ],
 
         [
