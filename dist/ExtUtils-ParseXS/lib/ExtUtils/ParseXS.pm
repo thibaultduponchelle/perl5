@@ -3192,9 +3192,6 @@ sub generate_output {
   my $eval_type = $type;
   $eval_type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
 
-  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
-
-
   # ------------------------------------------------------------------
   # Find the template code (pre any eval) and store it in $expr.
   # This is typically obtained via a typemap lookup, but can be overridden.
@@ -3249,6 +3246,8 @@ sub generate_output {
 
     $expr = $outputmap->cleaned_code;
   }
+
+  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
 
   # Specify the environment for if/when the code template is evalled.
   my $eval_vars = {
