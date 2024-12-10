@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 542;
+use Test::More tests => 543;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -2871,6 +2871,7 @@ EOF
             [ 0, 0, qr/int\s*\*\s+RETVAL;/,      "RETVAL is int*" ],
             [ 0, 0, qr/sv_setpvn\(.*,\s*5\s*\*\s*\Qsizeof(int));/,
                                                  "return packs 5 ints" ],
+            [ 0, 0, qr/sv_setpvn\(RETVALSV\b/,   "uses RETVALSV optimisation" ],
         ],
 
         [

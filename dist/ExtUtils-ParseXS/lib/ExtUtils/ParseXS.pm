@@ -3224,12 +3224,7 @@ sub generate_output {
       return;
     }
 
-    $expr = "sv_setpvn($arg, (char *)$var, $nitems * sizeof($atype));";
-    # XXX for now, output the code directly.
-    print "\t$arg = sv_newmortal();\n";
-    print "\t$expr\n";
-    print "\tSvSETMAGIC($arg);\n" if $do_setmagic;
-    return;
+    $expr = "\tsv_setpvn(\$arg, (char *)\$var, $nitems * sizeof($atype));\n";
   }
   else {
     # Handle a normal return type via a typemap.
