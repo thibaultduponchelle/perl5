@@ -3232,27 +3232,27 @@ sub generate_output {
     return;
   }
   else {
-  # Handle a normal return type via a typemap.
+    # Handle a normal return type via a typemap.
 
-  # Get the output map entry for this type; complain if not found.
-  my $typemap = $typemaps->get_typemap(ctype => $type);
-  if (not $typemap) {
-    $self->report_typemap_failure($typemaps, $type);
-    return;
-  }
+    # Get the output map entry for this type; complain if not found.
+    my $typemap = $typemaps->get_typemap(ctype => $type);
+    if (not $typemap) {
+      $self->report_typemap_failure($typemaps, $type);
+      return;
+    }
 
-  $outputmap = $typemaps->get_outputmap(xstype => $typemap->xstype);
-  if (not $outputmap) {
-    $self->blurt("Error: No OUTPUT definition for type '$type', typekind '"
-                 . $typemap->xstype . "' found");
-    return;
-  }
+    $outputmap = $typemaps->get_outputmap(xstype => $typemap->xstype);
+    if (not $outputmap) {
+      $self->blurt("Error: No OUTPUT definition for type '$type', typekind '"
+                   . $typemap->xstype . "' found");
+      return;
+    }
 
-  # Get the text of the typemap template, with a few transformations to
-  # make it work better with fussy C compilers. In particular, strip
-  # trailing semicolons and remove any leading white space before a '#'.
+    # Get the text of the typemap template, with a few transformations to
+    # make it work better with fussy C compilers. In particular, strip
+    # trailing semicolons and remove any leading white space before a '#'.
 
-  $expr = $outputmap->cleaned_code;
+    $expr = $outputmap->cleaned_code;
   }
 
   # Specify the environment for if/when the code template is evalled.
