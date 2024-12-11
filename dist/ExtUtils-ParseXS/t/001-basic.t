@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 543;
+use Test::More tests => 552;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1862,6 +1862,41 @@ EOF
 EOF
             [ 0, 0, qr/\QPUSHs(my_newsviv(RETVAL));/,   "uses code" ],
             [ 0, 0, qr/\QXSRETURN(1)/,                  "has XSRETURN" ],
+        ],
+
+        [
+            "OUTPUT RETVAL with code and template-like syntax",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(int a)
+                |    CODE:
+                |      RETVAL = 99
+                |    OUTPUT:
+                |      RETVAL baz($arg,$val);
+EOF
+            # Check that the override code is *not* template-expanded.
+            # This was probably originally an implementation error, but
+            # keep that behaviour for now for backwards compatibility.
+            [ 0, 0, qr'baz\(\$arg,\$val\);',            "vars not expanded" ],
+        ],
+
+        [
+            "OUTPUT RETVAL with code on IN_OUTLIST param",
+            [ Q(<<'EOF') ],
+                |int
+                |foo(IN_OUTLIST int abc)
+                |    CODE:
+                |      RETVAL = 99
+                |    OUTPUT:
+                |      RETVAL
+                |      abc  my_set(ST[0], RETVAL);
+EOF
+            [ 0, 0, qr/\Qmy_set(ST[0], RETVAL)/,      "code used for st(0)" ],
+            [ 0, 0, qr/XSprePUSH;\s*\QEXTEND(SP,2);/, "extend 2" ],
+            [ 0, 0, qr/\QPUSHi((IV)RETVAL);/,         "push RETVAL" ],
+            [ 0, 0, qr/\QPUSHs(sv_newmortal());/,     "push mortal" ],
+            [ 0, 0, qr/\Qsv_setiv(ST(1), (IV)abc);/,  "code not used for st(1)" ],
+            [ 0, 0, qr/\QXSRETURN(2)/,                "has XSRETURN" ],
         ],
 
         [

@@ -3192,6 +3192,12 @@ sub generate_output {
   my $eval_type = $type;
   $eval_type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
 
+  # We can be called twice for the same variable: once to update the
+  # original arg (via an entry in OUTPUT) and once to push the param's
+  # value (via OUTLIST). When doing the latter, any override code on an
+  # OUTPUT line should not be used.
+  undef $output_code if $out_num;
+
   # ------------------------------------------------------------------
   # Find the template code (pre any eval) and store it in $expr.
   # This is typically obtained via a typemap lookup, but can be overridden.
@@ -3201,8 +3207,10 @@ sub generate_output {
   my $typemaps = $self->{typemaps_object};
 
   if (defined $output_code) {
-    # an override on an OUTPUT line: use that instead of the typemap
-    $expr = $output_code;
+    # An override on an OUTPUT line: use that instead of the typemap.
+    # Note that we don't set $expr here, because $expr holds a template
+    # string pre-eval, while OUTPUT override code is *not*
+    # template-expanded, so $output_code is effectively post-eval code.
   }
   elsif ($type =~ /^array\(([^,]*),(.*)\)/) {
     # Handle the implicit array return type, "array(type, nlelem)"
@@ -3263,7 +3271,7 @@ sub generate_output {
   # ------------------------------------------------------------------
   # Handle DO_ARRAY_ELEM token as a very special case
 
-  if ($expr =~ /\bDO_ARRAY_ELEM\b/ and !defined $output_code) {
+  if (!defined $output_code and $expr =~ /\bDO_ARRAY_ELEM\b/) {
     # See the comments in ExtUtils::ParseXS::Node::Param::as_code() that
     # explain the similar code for the DO_ARRAY_ELEM hack there.
 
