@@ -323,6 +323,9 @@ BEGIN {
   'xsub_stack_was_reset',      # An XSprePUSH was emitted, so return values
                                # should be PUSHed rather than just set.
 
+  'xsub_targ_declared',        # A dXSTARG was emitted so TARG var in scope
+  'xsub_targ_usable',          # The TARG hasn't already been used
+
   );
 
   # do 'use fields', except: fields needs Hash::Util which is XS, which
@@ -1021,6 +1024,8 @@ EOF
                                                # PREINIT/INPUT
 
       $self->{xsub_stack_was_reset} = 0; # XSprePUSH not yet emitted
+      $self->{xsub_targ_declared}   = 0; # dXSTARG   not yet emitted
+      $self->{xsub_targ_usable}     = 0; # TARG hasn't already been used
 
       # Process any implicit INPUT section.
       $self->INPUT_handler($_);
@@ -1069,9 +1074,22 @@ EOF
           # creating a mortal each time), declare the TARG. (dXSTARG
           # checks whether the ENTERSUB op has a TARG, and if not, creates
           # a mortal instead for TARG).
+          #
+          # In an ideal world TARG would just be declared in a small scope
+          # containing the PUSHi() or whatever. However originally it
+          # was declared here, early in the output code, and some XS
+          # modules expect the TARG var to be available. So continue to
+          # declare it here.
           my $outputmap = $self->{typemaps_object}->get_outputmap( ctype => $self->{xsub_return_type} );
-          print "\tdXSTARG;\n"
-            if $self->{config_optimize} and $outputmap and $outputmap->targetable;
+
+          if (    $self->{config_optimize}
+              and $outputmap
+              and $outputmap->targetable)
+          {
+            $self->{xsub_targ_declared} = 1;
+            $self->{xsub_targ_usable}   = 1;
+            print "\tdXSTARG;\n"
+          }
         }
 
         # Process any parameters which were declared with a type
@@ -3360,9 +3378,11 @@ sub generate_output {
     my $target = $self->{config_optimize}
                   && defined $outputmap && $outputmap->targetable;
 
-    if ($target) {
+    if ($target && $self->{xsub_targ_usable}) {
       # Emit targ optimisation: basically, emit a PUSHi() or whatever,
       # which will set TARG to the value and push it.
+
+      $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
 
       # $target->{what} is something like '(IV)$var': the part of the
       # typemap which contains the value the TARG should be set to.
