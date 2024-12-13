@@ -320,6 +320,9 @@ BEGIN {
                                # code to be emitted *after* all INPUT and
                                # PREINIT keywords have been processed.
 
+  'xsub_stack_was_reset',      # An XSprePUSH was emitted, so return values
+                               # should be PUSHed rather than just set.
+
   );
 
   # do 'use fields', except: fields needs Hash::Util which is XS, which
@@ -1016,8 +1019,8 @@ EOF
       # First, initialize variables manipulated by INPUT_handler().
       $self->{xsub_deferred_code_lines} = "";  # lines to be emitted after
                                                # PREINIT/INPUT
-                        #
-                        # keep track of which vars have been seen
+
+      $self->{xsub_stack_was_reset} = 0; # XSprePUSH not yet emitted
 
       # Process any implicit INPUT section.
       $self->INPUT_handler($_);
@@ -1264,6 +1267,10 @@ EOF
           my $ext = $outlist_count;
           ++$ext if ($retval && $retval->{in_output}) || $implicit_OUTPUT_RETVAL;
           print "\tXSprePUSH;";
+          # XSprePUSH resets SP to the base of the stack frame; must PUSH
+          # any return values
+          $self->{xsub_stack_was_reset} = 1;
+
           print "\tEXTEND(SP,$ext);\n";
         }
 
@@ -3330,17 +3337,11 @@ sub generate_output {
     # If the var is called RETVAL, then we return its value on the
     # stack
 
-    # If there are any OUTLIST variables then we've already emitted
-    # the "XSprePUSH".
-    my $outlist_count = grep {    defined $_->{in_out}
-                               && $_->{in_out} =~ /OUTLIST$/
-                             }
-                             @{$self->{xsub_sig}{params}};
 
     if (defined $output_code) {
       # Deferred RETVAL with overridden typemap code. Just emit as-is.
       print "\t$output_code\n";
-      print "\t++SP;\n" if $outlist_count;
+      print "\t++SP;\n" if $self->{xsub_stack_was_reset};
       return;
     }
 
@@ -3375,7 +3376,10 @@ sub generate_output {
           # Handle sv_setpv() manually. (sv_setpvn() is handled
           # by the generic code below, via PUSHp().)
           print "\tsv_setpv(TARG, $what);\n";
-          print "\tXSprePUSH;\n" unless $outlist_count;
+          unless ($self->{xsub_stack_was_reset}) {
+            print "\tXSprePUSH;\n";
+            $self->{xsub_stack_was_reset} = 1;
+          }
           print "\tPUSHTARG;\n";
       }
       else {
@@ -3393,7 +3397,10 @@ sub generate_output {
           {var => $var, type => $eval_type}
         );
 
-        print "\tXSprePUSH;\n" unless $outlist_count;
+        unless ($self->{xsub_stack_was_reset}) {
+          print "\tXSprePUSH;\n";
+          $self->{xsub_stack_was_reset} = 1;
+        }
         print "\tPUSH$target->{type}($what$tsize);\n";
       }
       return;
@@ -3568,7 +3575,7 @@ sub generate_output {
     }
 
     print @lines;
-    print "\t++SP;\n" if $outlist_count;
+    print "\t++SP;\n" if $self->{xsub_stack_was_reset};
   }
 
   elsif (defined $out_num) {
