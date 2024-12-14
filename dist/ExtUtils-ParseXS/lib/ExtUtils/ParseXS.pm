@@ -3517,11 +3517,10 @@ sub generate_output {
         # function or expression that only returns immortals. But since
         # its only an optimisation, it doesn't matter if some cases aren't
         # spotted.
-        #
-        # This RE must be tried before next elsif, as is it effectively a
-        # special-case of the more general /\$arg =/ pattern.
 
-        $use_RETVALSV = 0;
+        # In addition, if not mortalising and not setting magic,
+        # then no need save value for further use.
+        $use_RETVALSV = 0 unless $do_setmagic;
       }
       else {
         # general '$arg = ' typemap
