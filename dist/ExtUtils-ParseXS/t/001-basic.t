@@ -1687,7 +1687,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHi\b/,    "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,    "has TARGi" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1699,7 +1699,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHi\b/,    "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,    "has TARGi" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1711,7 +1711,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHi\b/,    "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,    "has TARGi" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1722,7 +1722,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHu\b/,    "has PUSHu" ],
+            [ 0, 0, qr/\bTARGu\b/,    "has TARGu" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1733,7 +1733,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHn\b/,    "has PUSHn" ],
+            [ 0, 0, qr/\bTARGn\b/,    "has TARGn" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1771,7 +1771,7 @@ EOF
             [ 0, 1, qr/\bXSprePUSH\b.+\bXSprePUSH\b/s,
                                          "has only one XSprePUSH" ],
 
-            [ 0, 0, qr/\bPUSHi\b/,       "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,       "has TARGi" ],
             [ 0, 0, qr/\bPUSHs\b.+\bPUSHs\b/s,
                                          "has two PUSHs" ],
 
@@ -1830,7 +1830,7 @@ EOF
                 |      RETVAL
 EOF
             [ 0, 1, qr/\bSvSETMAGIC\b/,   "no set magic" ],
-            [ 0, 0, qr/\bPUSHi\b/,        "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,        "has TARGi" ],
             [ 0, 0, qr/\QXSRETURN(1)/,    "has XSRETURN" ],
         ],
 
@@ -1846,7 +1846,7 @@ EOF
                 |      RETVAL
 EOF
             [ 0, 1, qr/\bSvSETMAGIC\b/,   "no set magic" ],
-            [ 0, 0, qr/\bPUSHi\b/,        "has PUSHi" ],
+            [ 0, 0, qr/\bTARGi\b/,        "has TARGi" ],
             [ 0, 0, qr/\QXSRETURN(1)/,    "has XSRETURN" ],
         ],
 
@@ -1893,7 +1893,7 @@ EOF
 EOF
             [ 0, 0, qr/\Qmy_set(ST[0], RETVAL)/,      "code used for st(0)" ],
             [ 0, 0, qr/XSprePUSH;\s*\QEXTEND(SP,2);/, "extend 2" ],
-            [ 0, 0, qr/\QPUSHi((IV)RETVAL);/,         "push RETVAL" ],
+            [ 0, 0, qr/\QTARGi((IV)RETVAL, 1);/,      "push RETVAL" ],
             [ 0, 0, qr/\QPUSHs(sv_newmortal());/,     "push mortal" ],
             [ 0, 0, qr/\Qsv_setiv(ST(1), (IV)abc);/,  "code not used for st(1)" ],
             [ 0, 0, qr/\QXSRETURN(2)/,                "has XSRETURN" ],
@@ -1940,7 +1940,7 @@ EOF
             [ 0, 0, qr/\b\Qsv_setiv(ST(2),\E.*ccc/,  "setiv(ccc)" ],
             [ 0, 1, qr/\b\Qsv_setiv(ST(3)/,          "no setiv(ddd)" ],
             [ 0, 0, qr/\b\Qmy_set(xyz)/,             "myset" ],
-            [ 0, 0, qr/\bPUSHi\b.*RETVAL/,           "has PUSHi(RETVAL)" ],
+            [ 0, 0, qr/\bTARGi\b.*RETVAL/,           "has TARGi(RETVAL,1)" ],
             [ 0, 0, qr/\QXSRETURN(1)/,               "has XSRETURN" ],
         ],
 
@@ -2277,7 +2277,7 @@ EOF
             [ 0, 0, qr/\bint\s+RETVAL\s*=.*\QST(0)/,     "int  decl and init" ],
             [ 0, 0, qr/short\s+abc\s*=.*\QST(1)/,        "abc is ST1" ],
             [ 0, 0, qr/\bRETVAL\s*=\s*foo\(RETVAL, abc\)/,"autocall" ],
-            [ 0, 0, qr/\b\QPUSHi((IV)RETVAL)/,           "PUSHi" ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1)/,        "TARGi" ],
             [ 0, 0, qr/\b\QXSRETURN(1)/,                 "ret 1" ],
         ],
 
@@ -2293,7 +2293,7 @@ EOF
             [ 0, 0, qr/\bint\s+RETVAL\s*=.*\QST(0)/,     "int  decl and init" ],
             [ 0, 0, qr/short\s+abc\s*=.*\QST(1)/,        "abc is ST1" ],
             [ 0, 0, qr/\bRETVAL\s*=\s*foo\(RETVAL, abc\)/,"autocall" ],
-            [ 0, 0, qr/\b\QPUSHi((IV)RETVAL)/,            "PUSHi" ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1)/,         "TARGi" ],
             [ 0, 0, qr/\b\QXSRETURN(1)/,                  "ret 1" ],
         ],
 
@@ -2309,7 +2309,7 @@ EOF
             [ 0, 0, qr/\bint\s+RETVAL\s*=.*\QST(1)/,     "int  decl and init" ],
             [ 0, 0, qr/short\s+abc\s*=.*\QST(0)/,        "abc is ST0" ],
             [ 0, 0, qr/\bRETVAL\s*=\s*foo\(abc, RETVAL\)/,"autocall" ],
-            [ 0, 0, qr/\b\QPUSHi((IV)RETVAL)/,            "PUSHi" ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1)/,         "TARGi" ],
             [ 0, 0, qr/\b\QXSRETURN(1)/,                  "ret 1" ],
         ],
 
@@ -2330,7 +2330,7 @@ EOF
 
             [ 0, 0, qr/\bint\s+RETVAL\s*=.*\QST(0)/,  "int  decl and init" ],
             [ 0, 0, qr/short\s+abc\s*=.*\QST(1)/,     "abc is ST1" ],
-            [ 0, 0, qr/\b\QPUSHi((IV)RETVAL)/,        "PUSHi" ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1)/,     "TARGi" ],
             [ 0, 0, qr/\b\QXSRETURN(1)/,              "ret 1" ],
         ],
 
@@ -2349,7 +2349,7 @@ EOF
             [ 0, 1, qr/long\s+RETVAL/,                "no long declare" ],
             [ 0, 0, qr/\bint\s+RETVAL\s*=.*\QST(0)/,  "int  declare and init" ],
             [ 0, 0, qr/short\s+abc\s*=.*\QST(1)/,     "abc is ST1" ],
-            [ 0, 0, qr/\b\QPUSHi((IV)RETVAL)/,        "PUSHi" ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1)/,     "TARGi" ],
             [ 0, 0, qr/\b\QXSRETURN(1)/,              "ret 1" ],
         ],
 

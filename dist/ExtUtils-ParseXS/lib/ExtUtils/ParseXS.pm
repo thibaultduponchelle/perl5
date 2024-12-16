@@ -3421,7 +3421,14 @@ sub generate_output {
           print "\tXSprePUSH;\n";
           $self->{xsub_stack_was_reset} = 1;
         }
-        print "\tPUSH$target->{type}($what$tsize);\n";
+
+        if ($target->{type} =~ /^[iun]$/) {
+          print "\tTARG$target->{type}($what, 1);\n";
+          print "\tPUSHs(TARG);\n";
+        }
+        else {
+          print "\tPUSHp($what$tsize);\n";
+        }
       }
       return;
     }

@@ -488,6 +488,13 @@ S_croak_xs_usage(const CV *const cv, const char *const params)
 #  define newXS_deffile(a,b) Perl_newXS_deffile(aTHX_ a,b)
 #endif
 
+/* simple backcompat versions of the TARGx() macros with no optimisation */
+#ifndef TARGi
+#  define TARGi(iv, do_taint) sv_setiv_mg(TARG, iv)
+#  define TARGu(uv, do_taint) sv_setuv_mg(TARG, uv)
+#  define TARGn(nv, do_taint) sv_setnv_mg(TARG, nv)
+#endif
+
 EOF
   return 1;
 }
