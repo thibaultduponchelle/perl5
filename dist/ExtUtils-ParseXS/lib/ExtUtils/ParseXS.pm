@@ -3395,12 +3395,12 @@ sub generate_output {
       if (not $target->{with_size} and $target->{type} eq 'p') {
           # Handle sv_setpv() manually. (sv_setpvn() is handled
           # by the generic code below, via PUSHp().)
-          print "\tsv_setpv(TARG, $what);\n";
+          print "\tsv_setpv_mg(TARG, $what);\n";
           unless ($self->{xsub_stack_was_reset}) {
             print "\tXSprePUSH;\n";
             $self->{xsub_stack_was_reset} = 1;
           }
-          print "\tPUSHTARG;\n";
+          print "\tPUSHs(TARG);\n";
       }
       else {
         # Emit PUSHx() for generic sv_set_xv()
@@ -3427,7 +3427,8 @@ sub generate_output {
           print "\tPUSHs(TARG);\n";
         }
         else {
-          print "\tPUSHp($what$tsize);\n";
+          print "\tsv_setpvn_mg(TARG, $what$tsize);\n";
+          print "\tPUSHs(TARG);\n";
         }
       }
       return;

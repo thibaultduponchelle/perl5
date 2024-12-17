@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 552;
+use Test::More tests => 551;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1744,7 +1744,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bPUSHp\b/,    "has PUSHp" ],
+            [ 0, 0, qr/\bsv_setpvn_mg\b/, "has sv_setpvn_mg()" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1755,8 +1755,8 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bsv_setpv\b/, "has sv_setpv" ],
-            [ 0, 0, qr/\bPUSHTARG\b/, "has PUSHTARG" ],
+            [ 0, 0, qr/\bsv_setpv_mg\b/, "has sv_setpv_mg" ],
+            [ 0, 0, qr/\bPUSHs\(TARG\)/, "has PUSHs(TARG)" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -2082,16 +2082,15 @@ EOF
             [ 0, 0, qr/\bXSprePUSH\b/,               "XSprePUSH" ],
             [ 0, 0, qr/\b\QEXTEND(SP,2)/,            "EXTEND(SP,2)" ],
             # OUTPUT: RETVAL: push return value on stack
-            [ 0, 0, qr/\bsv_setpv\(TARG,\s*RETVAL\)/,"sv_setpv(TARG, RETVAL)" ],
-            [ 0, 0, qr/\bPUSHTARG\b/,                "PUSHTARG" ],
+            [ 0, 0, qr/\bsv_setpv_mg\(TARG,\s*RETVAL\)/,"sv_setpv_mg(TARG, RETVAL)" ],
+            [ 0, 0, qr/\bPUSHs\(TARG\)/,             "PUSHs(TARG)" ],
             # OUTLIST: push abc on stack
             [ 0, 0, qr/\b\QPUSHs(sv_newmortal())/,   "PUSHs(sv_newmortal())" ],
             [ 0, 0, qr/\b\Qsv_setiv(ST(1),\E.*abc\)/,"sv_setiv(ST1, abc)" ],
             # and return TETVAL and abc
             [ 0, 0, qr/\QXSRETURN(2)/,               "has XSRETURN" ],
 
-            # should only be one PUSHs and one SvSETMAGI
-            [ 0, 1, qr/\bPUSHs\b.*\bPUSHs\b/s,          "only one PUSHs" ],
+            # should only be one SvSETMAGIC
             [ 0, 1, qr/\bSvSETMAGIC\b.*\bSvSETMAGIC\b/s,"only one SvSETMAGIC" ],
         ],
     );
