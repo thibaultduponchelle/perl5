@@ -3408,11 +3408,8 @@ sub generate_output {
       # Emit code to set TARG
       print $evalexpr;
 
-      unless ($self->{xsub_stack_was_reset}) {
-        print "\tXSprePUSH;\n";
-        $self->{xsub_stack_was_reset} = 1;
-      }
-      print "\tPUSHs(TARG);\n";
+      print "\tST(0) = TARG;\n";
+      print "\t++SP;\n" if $self->{xsub_stack_was_reset};
 
       return;
     }
