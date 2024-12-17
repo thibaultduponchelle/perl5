@@ -3398,19 +3398,9 @@ sub generate_output {
           # Handle sv_setpv() manually. (sv_setpvn() is handled
           # by the generic code below, via PUSHp().)
           print "\tsv_setpv_mg(TARG, $what);\n";
-          unless ($self->{xsub_stack_was_reset}) {
-            print "\tXSprePUSH;\n";
-            $self->{xsub_stack_was_reset} = 1;
-          }
       }
       else {
         # Emit PUSHx() for generic sv_set_xv()
-
-        unless ($self->{xsub_stack_was_reset}) {
-          print "\tXSprePUSH;\n";
-          $self->{xsub_stack_was_reset} = 1;
-        }
-
         if ($target->{type} =~ /^[iun]$/) {
           print "\tTARG$target->{type}($what, 1);\n";
         }
@@ -3418,7 +3408,13 @@ sub generate_output {
           print "\tsv_setpvn_mg(TARG, $what);\n";
         }
       }
+
+      unless ($self->{xsub_stack_was_reset}) {
+        print "\tXSprePUSH;\n";
+        $self->{xsub_stack_was_reset} = 1;
+      }
       print "\tPUSHs(TARG);\n";
+
       return;
     }
 
