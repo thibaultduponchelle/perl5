@@ -1744,7 +1744,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bsv_setpvn_mg\b/, "has sv_setpvn_mg()" ],
+            [ 0, 0, qr/\bsv_setpvn\b/,"has sv_setpvn()" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
 
@@ -1755,7 +1755,7 @@ EOF
                 'foo()',
             ],
             [ 0, 0, qr/\bdXSTARG;/,   "has targ def" ],
-            [ 0, 0, qr/\bsv_setpv_mg\b/, "has sv_setpv_mg" ],
+            [ 0, 0, qr/\bsv_setpv\b/, "has sv_setpv" ],
             [ 0, 0, qr/\QST(0) = TARG;/, "has ST(0) = TARG" ],
             [ 0, 1, qr/sv_newmortal/, "doesn't have newmortal" ],
         ],
@@ -2082,7 +2082,7 @@ EOF
             [ 0, 0, qr/\bXSprePUSH\b/,               "XSprePUSH" ],
             [ 0, 0, qr/\b\QEXTEND(SP,2)/,            "EXTEND(SP,2)" ],
             # OUTPUT: RETVAL: push return value on stack
-            [ 0, 0, qr/\bsv_setpv_mg\(TARG,\s*RETVAL\)/,"sv_setpv_mg(TARG, RETVAL)" ],
+            [ 0, 0, qr/\bsv_setpv\(TARG,\s*RETVAL\)/,"sv_setpv(TARG, RETVAL)" ],
             [ 0, 0, qr/\QST(0) = TARG;/,             "has ST(0) = TARG" ],
             # OUTLIST: push abc on stack
             [ 0, 0, qr/\b\QPUSHs(sv_newmortal())/,   "PUSHs(sv_newmortal())" ],

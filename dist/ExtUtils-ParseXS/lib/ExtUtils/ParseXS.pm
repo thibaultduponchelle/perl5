@@ -3406,7 +3406,7 @@ sub generate_output {
       my $n = defined $target->{with_size} ? 'n' : '';
       $expr = $target->{type} =~ /^[iun]$/
                 ? "\tTARG$target->{type}($what, 1);\n"
-                : "\tsv_setpv${n}_mg(TARG, $what$size);\n";
+                : "\tsv_setpv${n}(TARG, $what$size);\n";
 
       # Expand template
       my $evalexpr = $self->eval_output_typemap_code(
