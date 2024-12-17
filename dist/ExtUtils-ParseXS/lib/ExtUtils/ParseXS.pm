@@ -3387,8 +3387,10 @@ sub generate_output {
       # $target->{what} is something like '(IV)$var': the part of the
       # typemap which contains the value the TARG should be set to.
       # Expand it via eval.
+      my $tsize = $target->{what_size}; # may be ", len)" for sv_setpvn()
+      $tsize = '' unless defined $tsize;
       my $what = $self->eval_output_typemap_code(
-        qq("$target->{what}"),
+        qq("$target->{what}$tsize"),
         {var => $var, type => $eval_type}
       );
 
@@ -3404,18 +3406,6 @@ sub generate_output {
       else {
         # Emit PUSHx() for generic sv_set_xv()
 
-        # $tsize is the third arg of the sv_setpvn() in the typemap
-        # (or empty otherwise), including comma, e.g. ', sizeof($var)'.
-        # Eval it so that the result can be passed as the 2nd arg to
-        # PUSHp().
-        # XXX this could be skipped if $tsize is empty
-        my $tsize = $target->{what_size};
-        $tsize = '' unless defined $tsize;
-        $tsize = $self->eval_output_typemap_code(
-          qq("$tsize"),
-          {var => $var, type => $eval_type}
-        );
-
         unless ($self->{xsub_stack_was_reset}) {
           print "\tXSprePUSH;\n";
           $self->{xsub_stack_was_reset} = 1;
@@ -3425,7 +3415,7 @@ sub generate_output {
           print "\tTARG$target->{type}($what, 1);\n";
         }
         else {
-          print "\tsv_setpvn_mg(TARG, $what$tsize);\n";
+          print "\tsv_setpvn_mg(TARG, $what);\n";
         }
       }
       print "\tPUSHs(TARG);\n";
