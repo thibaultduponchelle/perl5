@@ -3379,35 +3379,34 @@ sub generate_output {
                   && defined $outputmap && $outputmap->targetable;
 
     if ($target && $self->{xsub_targ_usable}) {
-      # Emit targ optimisation: basically, emit a PUSHi() or whatever,
-      # which will set TARG to the value and push it.
+      # TARG is available, use it rather than creating a new mortal.
+      # Also, use TARG[iun] macro as appropriate to speed up setting TARG
+      # to the return value in common cases.
 
       $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
 
-      # $target->{what} is something like '(IV)$var': the part of the
-      # typemap which contains the value the TARG should be set to.
-      # Expand it via eval.
-      my $tsize = $target->{what_size}; # may be ", len)" for sv_setpvn()
-      $tsize = '' unless defined $tsize;
-      my $what = $self->eval_output_typemap_code(
-        qq("$target->{what}$tsize"),
-        {var => $var, type => $eval_type}
+      # A typemap like
+      #    sv_setpvn($arg, (char *)&$var, sizeof($var))
+      # will have had '(char *)&$var' and ', sizeof($var)' extracted out
+      # as 'what' and 'what_size'  respectively.
+      # Reconstruct an alternate template using those values, which but
+      # update TARG instead.
+
+      my $what = $target->{what};
+      my $size = $target->{what_size};
+      $size = '' unless defined $size;
+      my $n = defined $target->{with_size} ? 'n' : '';
+      $expr = $target->{type} =~ /^[iun]$/
+                ? "\tTARG$target->{type}($what, 1);\n"
+                : "\tsv_setpv${n}_mg(TARG, $what$size);\n";
+
+      # Expand template
+      my $evalexpr = $self->eval_output_typemap_code(
+        "qq\a$expr\a", {var => $var, type => $eval_type}
       );
 
-      if (not $target->{with_size} and $target->{type} eq 'p') {
-          # Handle sv_setpv() manually. (sv_setpvn() is handled
-          # by the generic code below, via PUSHp().)
-          print "\tsv_setpv_mg(TARG, $what);\n";
-      }
-      else {
-        # Emit PUSHx() for generic sv_set_xv()
-        if ($target->{type} =~ /^[iun]$/) {
-          print "\tTARG$target->{type}($what, 1);\n";
-        }
-        else {
-          print "\tsv_setpvn_mg(TARG, $what);\n";
-        }
-      }
+      # Emit code to set TARG
+      print $evalexpr;
 
       unless ($self->{xsub_stack_was_reset}) {
         print "\tXSprePUSH;\n";
