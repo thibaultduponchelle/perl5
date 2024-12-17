@@ -3176,6 +3176,15 @@ sub generate_output {
     = @{$param}{qw(type arg_num var do_setmagic output_code)};
 
   if ($var eq 'RETVAL') {
+    # Only OUT/OUTPUT vars (which update one of the passed args) should be
+    # calling set magic; RETVAL and OUTLIST should be setting the value of
+    # a fresh mortal or TARG. Note that a param can be both OUTPUT and
+    # OUTLIST - the value of $do_setmagic only applies to its use as an
+    # OUTPUT (updating) value.
+
+    $self->death("Internal error: do set magic requested on RETVAL")
+      if $do_setmagic;
+
     # RETVAL normally has an undefined arg_num, although it can be
     # set to a real index if RETVAL is also declared as a parameter.
     # But when returning its value, it's always stored at ST(0).
@@ -3340,7 +3349,6 @@ sub generate_output {
     # expecting to push a single temp onto the stack, while our code
     # pushes several temps.
     print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
-    print "\t\tSvSETMAGIC(ST(ix_$var));\n" if $do_setmagic;
     return;
   }
 
@@ -3433,11 +3441,10 @@ sub generate_output {
     #
     #     ST(0) = Foo(RETVAL);
     #
-    # However, this is often then followed by a few more emitted lines
-    # such as:
+    # However, this is sometimes then followed by a further emitted
+    # line(s) # such as:
     #
     #     sv_2mortal(ST(0));
-    #     SvSETMAGIC(ST(0));
     #
     # which involve inefficient multiple accesses to get the ST(0)
     # pointer.  So in this branch, as an optimisation, we declare a
@@ -3449,7 +3456,6 @@ sub generate_output {
     #     SV *RETVALSV;
     #     RETVALSV = Foo(RETVAL);
     #     RETVALSV = sv_2mortal(RETVALSV);
-    #     SvSETMAGIC(RETVALSV);
     #     ST(0) = RETVALSV;
     #
     # Note that RETVALSV is set again from the return value of
@@ -3506,9 +3512,9 @@ sub generate_output {
         # its only an optimisation, it doesn't matter if some cases aren't
         # spotted.
 
-        # In addition, if not mortalising and not setting magic,
-        # then no need save value for further use.
-        $use_RETVALSV = 0 unless $do_setmagic;
+        # In addition, if not mortalising then no need save value for
+        # further use.
+        $use_RETVALSV = 0;
       }
       else {
         # general '$arg = ' typemap
@@ -3523,8 +3529,6 @@ sub generate_output {
       # We assume it's something like  sv_setiv($arg, (IV)$arg); where
       # we need to create a new mortal for the typemap to update.
       $want_newmortal = 1;
-      # new mortals don't have set magic
-      $do_setmagic = 0;
     }
 
     # (typically) initialise RETVALSV
@@ -3539,9 +3543,9 @@ sub generate_output {
       #                         further use of the var is expected;
       #   ST(0) = ...;       otherwise.
       #
-      # So for the last two forms revert 'RETVALSV' back.
-      if ($do_mortalize || $do_setmagic) {
-        # $do_mortalize or $do_setmagic imply further use of the variable
+      # So for the last two forms revert 'RETVALSV' back to RETVAL/ST(0)
+      if ($do_mortalize) {
+        # $do_mortalize implies further use of the variable
         $evalexpr =~ s/\bRETVALSV\b/RETVAL/g;
       }
       else {
@@ -3560,7 +3564,6 @@ sub generate_output {
 
     my $retvar = $use_RETVALSV ? 'RETVALSV' : 'RETVAL';
     push @lines, "\t$retvar = sv_2mortal($retvar);\n" if $do_mortalize;
-    push @lines, "\tSvSETMAGIC($retvar);\n"           if $do_setmagic;
 
     # Emit the final 'ST(0) = RETVAL' or similar, unless ST(0)
     # was already assigned to earlier directly by the typemap.
