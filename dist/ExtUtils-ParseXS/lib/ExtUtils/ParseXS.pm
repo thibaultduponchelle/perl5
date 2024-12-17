@@ -3400,7 +3400,6 @@ sub generate_output {
             print "\tXSprePUSH;\n";
             $self->{xsub_stack_was_reset} = 1;
           }
-          print "\tPUSHs(TARG);\n";
       }
       else {
         # Emit PUSHx() for generic sv_set_xv()
@@ -3424,13 +3423,12 @@ sub generate_output {
 
         if ($target->{type} =~ /^[iun]$/) {
           print "\tTARG$target->{type}($what, 1);\n";
-          print "\tPUSHs(TARG);\n";
         }
         else {
           print "\tsv_setpvn_mg(TARG, $what$tsize);\n";
-          print "\tPUSHs(TARG);\n";
         }
       }
+      print "\tPUSHs(TARG);\n";
       return;
     }
 
