@@ -3426,11 +3426,9 @@ sub generate_output {
 
     my $orig_arg = $arg;
     my @lines;           # lines of code to eventually emit
-    my $use_RETVALSV = 1;
     my $do_mortalize = 0;
-    # the typemap already includes 'ST(0) =' rather than 'RETVALSV = ' etc
-    my $ST0_already_assigned_to = 0;
     my $want_newmortal = 0;
+    my $retvar = 'RETVALSV';  # the SV (likely tmp) to set to RETVAL val
 
     # Evaluate the typemap, expanding any vars like $var and $arg.
     # So for example,
@@ -3512,15 +3510,15 @@ sub generate_output {
         # its only an optimisation, it doesn't matter if some cases aren't
         # spotted.
 
-        # In addition, if not mortalising then no need save value for
-        # further use.
-        $use_RETVALSV = 0;
+        # In addition, since not mortalising, then no need save value for
+        # further use - just set directly.
+        $retvar = $orig_arg;
       }
       else {
         # general '$arg = ' typemap
 
         # See comment above about the SVPtr optimisation
-        $use_RETVALSV = 0 if $ntype eq "SVPtr";
+        $retvar = 'RETVAL' if $ntype eq "SVPtr";
         $do_mortalize = 1;
       }
     }
@@ -3531,10 +3529,17 @@ sub generate_output {
       $want_newmortal = 1;
     }
 
+    my $do_scope; # wrap code in a {} block
+
+    if ($retvar eq 'RETVALSV') {
+      push @lines, "\tSV * $retvar;\n";
+      $do_scope = 1;
+    }
+
     # (typically) initialise RETVALSV
     push @lines, "\tRETVALSV = sv_newmortal();\n" if $want_newmortal;
 
-    if (!$use_RETVALSV) {
+    if ($retvar ne 'RETVALSV') {
       # we want the typemap to look like one of these three cases:
       #
       #   RETVALSV = ...;    if $use_RETVALSV; else
@@ -3544,14 +3549,7 @@ sub generate_output {
       #   ST(0) = ...;       otherwise.
       #
       # So for the last two forms revert 'RETVALSV' back to RETVAL/ST(0)
-      if ($do_mortalize) {
-        # $do_mortalize implies further use of the variable
-        $evalexpr =~ s/\bRETVALSV\b/RETVAL/g;
-      }
-      else {
-        $evalexpr =~ s/\bRETVALSV\b/$orig_arg/g;
-        $ST0_already_assigned_to = 1;
-      }
+      $evalexpr =~ s/\bRETVALSV\b/$retvar/g;
     }
 
     # Emit the typemap, unless it's of the trivial "RETVAL = RETVAL"
@@ -3560,27 +3558,21 @@ sub generate_output {
       push @lines, split /^/, $evalexpr
     }
 
-    # Emit mortalisation and set magic code on the result SV if need be
-
-    my $retvar = $use_RETVALSV ? 'RETVALSV' : 'RETVAL';
+    # Emit mortalisation on the result SV if need be
     push @lines, "\t$retvar = sv_2mortal($retvar);\n" if $do_mortalize;
 
     # Emit the final 'ST(0) = RETVAL' or similar, unless ST(0)
     # was already assigned to earlier directly by the typemap.
-    push @lines, "\t$orig_arg = $retvar;\n"
-      unless $ST0_already_assigned_to;
+    push @lines, "\t$orig_arg = $retvar;\n" unless $retvar eq $orig_arg;
 
-    if ($use_RETVALSV) {
-      # Add an extra 4-indent
+    if ($do_scope) {
+      # Add an extra 4-indent, then wrap the output code in a new block
       for (@lines) {
         s/\t/        /g;   # break down all tabs into spaces
         s/^/    /;         # add 4-space extra indent
         s/        /\t/g;   # convert 8 spaces back to tabs
       }
-
-      # Wrap the output code in a new block with a RETVALSV declaration
-      unshift @lines,  "\t{\n",
-                       "\t    SV * RETVALSV;\n";
+      unshift @lines,  "\t{\n";
       push    @lines,  "\t}\n";
     }
 
