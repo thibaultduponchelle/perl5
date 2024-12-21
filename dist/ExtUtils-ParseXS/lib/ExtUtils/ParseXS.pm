@@ -3371,57 +3371,6 @@ sub generate_output {
       return;
     }
 
-    # Examine the typemap entry to determine whether it's possible
-    # to optimise the return code by using the OP_ENTERSUB's targ (if
-    # any) rather than creating a new mortal each time.
-    # The targetable() Typemap method looks at whether the typemap
-    # is of the form sv_setX($arg, $val) or similar, for X in iv ,uv,
-    # nv, pv, pvn.
-    # Note that we did the same lookup earlier to determine whether to
-    # emit dXSTARG, a macro which expands to something like:
-    #
-    #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
-    #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
-
-    my $target = $self->{config_optimize}
-                  && defined $outputmap && $outputmap->targetable;
-
-    if ($target && $self->{xsub_targ_usable}) {
-      # TARG is available, use it rather than creating a new mortal.
-      # Also, use TARG[iun] macro as appropriate to speed up setting TARG
-      # to the return value in common cases.
-
-      $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
-
-      # A typemap like
-      #    sv_setpvn($arg, (char *)&$var, sizeof($var))
-      # will have had '(char *)&$var' and ', sizeof($var)' extracted out
-      # as 'what' and 'what_size'  respectively.
-      # Reconstruct an alternate template using those values, which but
-      # update TARG instead.
-
-      my $what = $target->{what};
-      my $size = $target->{what_size};
-      $size = '' unless defined $size;
-      my $n = defined $target->{with_size} ? 'n' : '';
-      $expr = $target->{type} =~ /^[iun]$/
-                ? "\tTARG$target->{type}($what, 1);\n"
-                : "\tsv_setpv${n}(TARG, $what$size);\n";
-
-      # Expand template
-      my $evalexpr = $self->eval_output_typemap_code(
-        "qq\a$expr\a", {var => $var, type => $eval_type}
-      );
-
-      # Emit code to set TARG
-      print $evalexpr;
-
-      print "\tST(0) = TARG;\n";
-      print "\t++SP;\n" if $self->{xsub_stack_was_reset};
-
-      return;
-    }
-
     # emit a standard RETVAL return
 
     my $orig_arg = $arg;
@@ -3526,12 +3475,63 @@ sub generate_output {
       # This is the opposite case to a '$arg = ' style typemap.
       # We assume it's something like  sv_setiv($arg, (IV)$arg); where
       # we need to create a new mortal for the typemap to update.
-      $want_newmortal = 1;
+
+      # First, examine the typemap entry to determine whether it's possible
+      # to optimise the return code by using the OP_ENTERSUB's targ (if
+      # any) rather than creating a new mortal each time.
+      # The targetable() Typemap method looks at whether the typemap
+      # is of the form sv_setX($arg, $val) or similar, for X in iv ,uv,
+      # nv, pv, pvn.
+      # Note that we did the same lookup earlier to determine whether to
+      # emit dXSTARG, a macro which expands to something like:
+      #
+      #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
+      #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
+
+      my $target = $self->{config_optimize}
+                    && defined $outputmap && $outputmap->targetable;
+
+      if (   $target
+          && (!$self->{xsub_targ_declared} || $self->{xsub_targ_usable}) )
+      {
+        # TARG is available, use it rather than creating a new mortal.
+        # Also, use TARG[iun] macro as appropriate to speed up setting TARG
+        # to the return value in common cases.
+
+        $retvar = 'TARG';
+        $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
+
+        # Convert sv_setiv(RETVALSV, val) to TARGi(val,1) and similarly
+        # for uv and nv. These macros skip a function call for the common
+        # case where TARG is already a simple IV/UV/NV.
+
+        $evalexpr =~ s{
+                      ^
+                      (\s*)
+                      sv_set([iun])v
+                      \(
+                        \s* RETVALSV \s* ,
+                        \s* (.*)
+                      \)
+                      ( \s* ; \s*)
+                      $
+                      }
+                      {$1TARG$2($3, 1)$4}x;
+      }
+      else {
+        # general typemap - give it a fresh SV to set the value of.
+        $want_newmortal = 1;
+      }
     }
 
     my $do_scope; # wrap code in a {} block
 
-    if ($retvar eq 'RETVALSV') {
+    if ($retvar eq 'TARG' && !$self->{xsub_targ_declared}) {
+      push @lines, "\tdXSTARG;\n";
+      $self->{xsub_targ_declared} = 1;
+      $do_scope = 1;
+    }
+    elsif ($retvar eq 'RETVALSV') {
       push @lines, "\tSV * $retvar;\n";
       $do_scope = 1;
     }
