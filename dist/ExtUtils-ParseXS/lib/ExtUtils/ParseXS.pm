@@ -3354,15 +3354,23 @@ sub generate_output {
 
   # ------------------------------------------------------------------
   # In the three branches of this big if/else, handle the three types of
-  # var:
-  #   RETVAL
-  #   OUTLIST argname
-  #   argname
+  # return value:
+  #
+  #   RETVAL           - the usual case: store an SV (typically a new
+  #                      mortal) at ST(0) which is set to the value of
+  #                      RETVAL
+  #
+  #   OUTLIST param    - push after ST(0) new mortal(s) containing the
+  #                      current values of the local var set from that
+  #                      parameter.
+  #
+  #   OUT param        - update the SV at ST(n) which corresponds to that
+  #                      parameter with the current value of the local var
+  #                      set from that parameter.
 
   if ($var eq 'RETVAL') {
     # If the var is called RETVAL, then we return its value on the
-    # stack
-
+    # stack at ST(0).
 
     if (defined $output_code) {
       # Deferred RETVAL with overridden typemap code. Just emit as-is.
@@ -3371,51 +3379,47 @@ sub generate_output {
       return;
     }
 
-    # emit a standard RETVAL return
+    # Emit a standard RETVAL return
 
-    my $orig_arg = $arg;
-    my @lines;           # lines of code to eventually emit
-    my $do_mortalize = 0;
-    my $want_newmortal = 0;
-    my $retvar = 'RETVALSV';  # the SV (likely tmp) to set to RETVAL val
+    my $do_mortalize   = 0;  # Emit an sv_2mortal()
+    my $want_newmortal = 0;  # Emit an sv_newmortal()
+    my $retvar = 'RETVALSV'; # The name of the C var which holds the SV
+                             # (likely tmp) to set to the value of RETVAL
 
-    # Evaluate the typemap, expanding any vars like $var and $arg.
-    # So for example,
+    # Evaluate the typemap, expanding any vars like $var and $arg,
+    # for example,
     #
-    #     $arg = Foo($var);
+    #     $arg = newFoo($var);
+    # or
+    #     sv_setfoo($arg, $var);
     #
-    # normally gets expanded to:
+    # However, rather than using the actual destination (such as ST(0))
+    # for the value of $arg, we instead set it initially to RETVALSV. This
+    # is because often the SV will be used in more than one statement,
+    # and so it is more efficient to temporarily store it in a C auto var.
+    # So we normally emit code such as:
     #
-    #     ST(0) = Foo(RETVAL);
-    #
-    # However, this is sometimes then followed by a further emitted
-    # line(s) # such as:
-    #
-    #     sv_2mortal(ST(0));
-    #
-    # which involve inefficient multiple accesses to get the ST(0)
-    # pointer.  So in this branch, as an optimisation, we declare a
-    # temporary variable RETVALSV; then we use it rather than 'ST(0)'
-    # for the value of $arg in the evalled typemap and in any other
-    # emitted code, only storing to ST(0) finally. So our example code
-    # above will be emitted as:
-    #
+    #  {
     #     SV *RETVALSV;
-    #     RETVALSV = Foo(RETVAL);
+    #     RETVALSV = newFoo(RETVAL);
     #     RETVALSV = sv_2mortal(RETVALSV);
     #     ST(0) = RETVALSV;
+    #  }
+    #  
+    # Rather than
     #
-    # Note that RETVALSV is set again from the return value of
-    # sv_2mortal(), which means that the compiler doesn't have to save
-    # the value of RETVALSV across the function call.
+    #     ST(0) = newFoo(RETVAL);
+    #     sv_2mortal(ST(0));
     #
-    # There is a further special optimisation for the T_SV case,
-    # where RETVAL is already of type SV* (i.e. $ntype eq 'SVPtr').
-    # In the case where the typemap is of the form '$arg = Foo($var)',
-    # (as opposed to 'sv_setFOO($arg, $var)'), then we don't declare
-    # RETVALSV and just use RETVAL directly.
+    # Later we sometimes modify the evalled typemap to change 'RETVALSV'
+    # to some other value:
+    #   - back to 'ST(0)' if there is no other use of the SV;
+    #   - to TARG when we are using the OP_ENTERSUB's targ;
+    #   - to 'RETVAL' when then return type is SV* (and thus ntype is SVPtr)
+    #     and so RETVAL will already have been declared as type 'SV*' and
+    #     thus there is no need for a RETVALSV too.
     #
-    # Note that we evaluate the typemap early here, so that the various
+    # Note that we evaluate the typemap early here so that the various
     # regexes below such as /^\s*\Q$arg\E\s*=/ can be matched against
     # the *evalled* result of typemap entries such as
     #
@@ -3424,20 +3428,36 @@ sub generate_output {
     # which may eval to something like "RETVALSV = RETVAL" and
     # subsequently match /^\s*\Q$arg\E =/ (where $arg is "RETVAL"), but
     # couldn't have matched against the original typemap.
+    # This is why we set *alway*s $arg to 'RETVALSV' first and then modify
+    # the typemap later - we don't know what final value we want for $arg
+    # until after we've examined the evalled result.
 
+    my $orig_arg = $arg;
     $eval_vars->{arg} = $arg = 'RETVALSV';
     my $evalexpr = $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
 
-    if ($evalexpr =~ /^\s*\Q$arg\E\s*=/) {
-      # Detect a typemap that assigns an SV to the arg, rather than than
-      # updating an SV; e.g.:
-      #     $arg = newRV($var);
-      # as opposed to
-      #     sv_setiv($arg, (IV)$arg);
-      # and if so, we just mortalise the SV rather than creating a
-      # new temp and copying.
 
-      # Is it a more special case of the '$arg = ' pattern?
+    # The two halves of this big if/else examine the two forms of evalled
+    # typemap:
+    #
+    #     RETVALSV = newFoo((Foo)RETVAL);
+    # and
+    #     sv_setfoo(RETVALSV, (Foo)RETVAL);
+    #
+    # looking for optimisations and determining what sort of code needs
+    # emitting.
+    #
+    # In particular, the first form is assumed to be returning an SV which
+    # the function has generated itself (e.g. newSVREF()) and which may
+    # just need mortalising; while the second form generally needs a call
+    # to sv_newmortal() first to create an SV which the function can set
+    # the value of.
+
+    if ($evalexpr =~ /^\s*\Q$arg\E\s*=/) {
+      # Handle this form: RETVALSV = newFoo((Foo)RETVAL);
+      # newFoo creates its own SV: we just need to mortalise and return it
+
+      # Is the SV one of the immortal SVs?
       if ($evalexpr =~
           /^\s*
             \Q$arg\E
@@ -3451,34 +3471,25 @@ sub generate_output {
             \s*;\s*$
           /x)
       {
-        # An optimisation: in cases where the return value is an SV and
-        # the style of the typemap indicates that the SV will be one of
-        # the immortals, skip mortalizing it. This code doesn't detect all
-        # possible immortal values; for example, it won't detect a
-        # function or expression that only returns immortals. But since
-        # its only an optimisation, it doesn't matter if some cases aren't
-        # spotted.
-
-        # In addition, since not mortalising, then no need save value for
-        # further use - just set directly.
-        $retvar = $orig_arg;
+        # If so, we can skip mortalising it to stop it leaking.
+        $retvar = $orig_arg; # just assign ST(0) directly
       }
       else {
-        # general '$arg = ' typemap
-
-        # See comment above about the SVPtr optimisation
-        $retvar = 'RETVAL' if $ntype eq "SVPtr";
+        # general '$arg = newFOO()' typemap
         $do_mortalize = 1;
+
+        # See comment above about when return type is SVPtr (i.e. SV*)
+        $retvar = 'RETVAL' if $ntype eq "SVPtr";
       }
     }
     else {
-      # This is the opposite case to a '$arg = ' style typemap.
-      # We assume it's something like  sv_setiv($arg, (IV)$arg); where
-      # we need to create a new mortal for the typemap to update.
+      # Handle this form: sv_setfoo(RETVALSV, (Foo)RETVAL);
+      # We generally need to supply a mortal SV for the typemap code to
+      # set, and then return it,
 
-      # First, examine the typemap entry to determine whether it's possible
-      # to optimise the return code by using the OP_ENTERSUB's targ (if
-      # any) rather than creating a new mortal each time.
+      # First, see if we can use the targ (if any) attached to  the
+      # current OP_ENTERSUB to avoid having to create a new mortal.
+      #
       # The targetable() Typemap method looks at whether the typemap
       # is of the form sv_setX($arg, $val) or similar, for X in iv ,uv,
       # nv, pv, pvn.
@@ -3487,6 +3498,12 @@ sub generate_output {
       #
       #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
       #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
+      #
+      # We currently only use TARG for these specific cases. Ideally we
+      # would always use TARG if available, but it turns out we shouldn't
+      # use TARG if the returned value is a ref to something: since the
+      # targ is never freed, the referent is never freed either. But in
+      # future there might be other cases that would safely benefit.
 
       my $target = $self->{config_optimize}
                     && defined $outputmap && $outputmap->targetable;
@@ -3519,12 +3536,16 @@ sub generate_output {
                       {$1TARG$2($3, 1)$4}x;
       }
       else {
-        # general typemap - give it a fresh SV to set the value of.
+        # general typemap: give it a fresh SV to set the value of.
         $want_newmortal = 1;
       }
     }
 
+    # Now emit the RETVAL C code, based on the various flags and values
+    # determined above.
+
     my $do_scope; # wrap code in a {} block
+    my @lines;    # Lines of code to eventually emit
 
     if ($retvar eq 'TARG' && !$self->{xsub_targ_declared}) {
       push @lines, "\tdXSTARG;\n";
@@ -3536,24 +3557,14 @@ sub generate_output {
       $do_scope = 1;
     }
 
-    # (typically) initialise RETVALSV
     push @lines, "\tRETVALSV = sv_newmortal();\n" if $want_newmortal;
-
-    if ($retvar ne 'RETVALSV') {
-      # we want the typemap to look like one of these three cases:
-      #
-      #   RETVALSV = ...;    if $use_RETVALSV; else
-      #   RETVAL = ...;      if the SVPtr optimisation is in place to
-      #                         use RETVAL rather than RETVALSV, and
-      #                         further use of the var is expected;
-      #   ST(0) = ...;       otherwise.
-      #
-      # So for the last two forms revert 'RETVALSV' back to RETVAL/ST(0)
-      $evalexpr =~ s/\bRETVALSV\b/$retvar/g;
-    }
 
     # Emit the typemap, unless it's of the trivial "RETVAL = RETVAL"
     # form, which is sometimes generated for the SVPtr optimisation.
+
+    # (See comments above about sometimes using RETVAL/TARG/ST(0)
+    # instead of RETVALSV.)
+    $evalexpr =~ s/\bRETVALSV\b/$retvar/g if $retvar ne 'RETVALSV';
     unless ($evalexpr =~ /^\s*RETVAL\s*=\s*RETVAL\s*;\s*$/) {
       push @lines, split /^/, $evalexpr
     }
