@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 607;
+use Test::More tests => 618;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1477,8 +1477,8 @@ EOF
 
             [ 0, 0, qr/\QEXTEND(SP,2)/,                "extend"   ],
 
-            [ 0, 0, qr/sv_setiv.*ST\(0\).*\bD\b/,      "set D"    ],
-            [ 0, 0, qr/sv_setiv.*ST\(1\).*\bE\b/,      "set E"    ],
+            [ 0, 0, qr/\b\QTARGi((IV)D, 1);\E\s+\QST(0) = TARG;\E\s+\}\s+\Q++SP;/, "set D"    ],
+            [ 0, 0, qr/\b\Qsv_setiv(RETVALSV, (IV)E);\E\s+\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "set E"    ],
         ],
 
         # Various types of OUTLIST where the param is the only value to
@@ -1492,8 +1492,9 @@ EOF
             ],
             [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
             [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setsv(ST(0), boolSV(A));/, "set ST(0)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(RETVALSV, boolSV(A));/, "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(0) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
         ],
         [
@@ -1504,8 +1505,9 @@ EOF
             ],
             [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
             [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setsv(ST(0), boolSV(A));/, "set ST(0)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(RETVALSV, boolSV(A));/, "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(0) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
         ],
         [
@@ -1516,8 +1518,10 @@ EOF
             ],
             [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
             [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setiv(ST(0), (IV)A);/,     "set ST(0)"       ],
+            [ 0, 1, qr/\bsv_newmortal\b;/,               "NO new mortal"   ],
+            [ 0, 0, qr/\bdXSTARG;/,                      "dXSTARG"         ],
+            [ 0, 0, qr/\b\QTARGi((IV)A, 1);/,            "set TARG"        ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\}\s+\Q++SP;/, "store TARG"   ],
             [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
         ],
         [
@@ -1528,8 +1532,10 @@ EOF
             ],
             [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
             [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setpv((SV*)ST(0), A);/,    "set ST(0)"       ],
+            [ 0, 1, qr/\bsv_newmortal\b;/,               "NO new mortal"   ],
+            [ 0, 0, qr/\bdXSTARG;/,                      "dXSTARG"         ],
+            [ 0, 0, qr/\b\Qsv_setpv((SV*)TARG, A);/,     "set TARG"        ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\}\s+\Q++SP;/, "store TARG"   ],
             [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
         ],
 
@@ -1546,8 +1552,9 @@ EOF
             [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
             [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
             [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setsv(ST(1), boolSV(A));/, "set ST(1)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(RETVALSV, boolSV(A));/, "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
         [
@@ -1560,8 +1567,9 @@ EOF
             [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
             [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
             [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setsv(ST(1), boolSV(A));/, "set ST(1)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(RETVALSV, boolSV(A));/, "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
         [
@@ -1574,8 +1582,9 @@ EOF
             [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
             [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
             [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setiv(ST(1), (IV)A);/,     "set ST(1)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setiv(RETVALSV, (IV)A);/,  "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
         [
@@ -1588,8 +1597,9 @@ EOF
             [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
             [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
             [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
-            [ 0, 0, qr/\b\Qsv_setpv((SV*)ST(1), A);/,    "set ST(1)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setpv((SV*)RETVALSV, A);/, "set RETVALSV"   ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
     );
@@ -1891,8 +1901,8 @@ EOF
                                          "has only one XSprePUSH" ],
 
             [ 0, 0, qr/\bTARGi\b/,       "has TARGi" ],
-            [ 0, 0, qr/\bPUSHs\b.+\bPUSHs\b/s,
-                                         "has two PUSHs" ],
+            [ 0, 0, qr/\bsv_setiv\(RETVALSV.*sv_setiv\(RETVALSV/s,
+                                         "has two setiv(RETVALSV,...)" ],
 
             [ 0, 0, qr/\bXSRETURN\(3\)/, "has XSRETURN(3)" ],
         ],
@@ -2013,8 +2023,8 @@ EOF
             [ 0, 0, qr/\Qmy_set(ST[0], RETVAL)/,      "code used for st(0)" ],
             [ 0, 0, qr/XSprePUSH;\s*\QEXTEND(SP,2);/, "extend 2" ],
             [ 0, 0, qr/\QTARGi((IV)RETVAL, 1);/,      "push RETVAL" ],
-            [ 0, 0, qr/\QPUSHs(sv_newmortal());/,     "push mortal" ],
-            [ 0, 0, qr/\Qsv_setiv(ST(1), (IV)abc);/,  "code not used for st(1)" ],
+            [ 0, 0, qr/\QRETVALSV = sv_newmortal();/, "create mortal" ],
+            [ 0, 0, qr/\Qsv_setiv(RETVALSV, (IV)abc);/, "code not used for st(1)" ],
             [ 0, 0, qr/\QXSRETURN(2)/,                "has XSRETURN" ],
         ],
 
@@ -2204,9 +2214,10 @@ EOF
             [ 0, 0, qr/\bsv_setpv\(\(SV\*\)TARG,\s*RETVAL\)/,"sv_setpv(TARG, RETVAL)" ],
             [ 0, 0, qr/\QST(0) = TARG;/,             "has ST(0) = TARG" ],
             # OUTLIST: push abc on stack
-            [ 0, 0, qr/\b\QPUSHs(sv_newmortal())/,   "PUSHs(sv_newmortal())" ],
-            [ 0, 0, qr/\b\Qsv_setiv(ST(1),\E.*abc\)/,"sv_setiv(ST1, abc)" ],
-            # and return TETVAL and abc
+            [ 0, 0, qr/\QRETVALSV = sv_newmortal();/, "create mortal" ],
+            [ 0, 0, qr/\b\Qsv_setiv(RETVALSV, (IV)abc);/,"sv_setiv(RETVALSV, abc)" ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
+            # and return RETVAL and abc
             [ 0, 0, qr/\QXSRETURN(2)/,               "has XSRETURN" ],
 
             # should only be one SvSETMAGIC

@@ -3353,38 +3353,39 @@ sub generate_output {
   }
 
   # ------------------------------------------------------------------
-  # In the three branches of this big if/else, handle the three types of
+  # In the two branches of this big if/else, handle the three types of
   # return value:
   #
-  #   RETVAL           - the usual case: store an SV (typically a new
-  #                      mortal) at ST(0) which is set to the value of
-  #                      RETVAL
+  #   RETVAL           - The usual case: store an SV at ST(0) which is set
+  #                      to the value of RETVAL. This is typically a new
+  #                      mortal, but may be optimised to use TARG.
   #
-  #   OUTLIST param    - push after ST(0) new mortal(s) containing the
-  #                      current values of the local var set from that
-  #                      parameter.
+  #   OUTLIST param    - ($out_num is +ve) Push after any RETVAL, new
+  #                      mortal(s) containing the current values of the
+  #                      local var set from that parameter. (May also use
+  #                      TARG if not already used by RETVAL).
   #
   #   OUT param        - update the SV at ST(n) which corresponds to that
   #                      parameter with the current value of the local var
   #                      set from that parameter.
 
-  if ($var eq 'RETVAL') {
-    # If the var is called RETVAL, then we return its value on the
-    # stack at ST(0).
+  if ($var eq 'RETVAL' or defined $out_num) {
+    # RETVAL or "OUTLIST foo".
+    # An SV with value of RETVAL/foo should be pushed onto the stack.
 
-    if (defined $output_code) {
+    if (defined $output_code and !defined $out_num) {
       # Deferred RETVAL with overridden typemap code. Just emit as-is.
       print "\t$output_code\n";
       print "\t++SP;\n" if $self->{xsub_stack_was_reset};
       return;
     }
 
-    # Emit a standard RETVAL return
+    # Emit a standard RETVAL/OUTLIST return
 
     my $do_mortalize   = 0;  # Emit an sv_2mortal()
     my $want_newmortal = 0;  # Emit an sv_newmortal()
     my $retvar = 'RETVALSV'; # The name of the C var which holds the SV
-                             # (likely tmp) to set to the value of RETVAL
+                             # (likely tmp) to set to the value of the var
 
     # Evaluate the typemap, expanding any vars like $var and $arg,
     # for example,
@@ -3413,7 +3414,7 @@ sub generate_output {
     #
     # Later we sometimes modify the evalled typemap to change 'RETVALSV'
     # to some other value:
-    #   - back to 'ST(0)' if there is no other use of the SV;
+    #   - back to e.g. 'ST(0)' if there is no other use of the SV;
     #   - to TARG when we are using the OP_ENTERSUB's targ;
     #   - to 'RETVAL' when then return type is SV* (and thus ntype is SVPtr)
     #     and so RETVAL will already have been declared as type 'SV*' and
@@ -3428,7 +3429,7 @@ sub generate_output {
     # which may eval to something like "RETVALSV = RETVAL" and
     # subsequently match /^\s*\Q$arg\E =/ (where $arg is "RETVAL"), but
     # couldn't have matched against the original typemap.
-    # This is why we set *alway*s $arg to 'RETVALSV' first and then modify
+    # This is why we *always* set $arg to 'RETVALSV' first and then modify
     # the typemap later - we don't know what final value we want for $arg
     # until after we've examined the evalled result.
 
@@ -3541,11 +3542,13 @@ sub generate_output {
       }
     }
 
-    # Now emit the RETVAL C code, based on the various flags and values
+    # Now emit the return C code, based on the various flags and values
     # determined above.
 
     my $do_scope; # wrap code in a {} block
     my @lines;    # Lines of code to eventually emit
+
+    # Do any declarations first
 
     if ($retvar eq 'TARG' && !$self->{xsub_targ_declared}) {
       push @lines, "\tdXSTARG;\n";
@@ -3572,7 +3575,7 @@ sub generate_output {
     # Emit mortalisation on the result SV if need be
     push @lines, "\t$retvar = sv_2mortal($retvar);\n" if $do_mortalize;
 
-    # Emit the final 'ST(0) = RETVAL' or similar, unless ST(0)
+    # Emit the final 'ST(n) = RETVALSV' or similar, unless ST(n)
     # was already assigned to earlier directly by the typemap.
     push @lines, "\t$orig_arg = $retvar;\n" unless $retvar eq $orig_arg;
 
@@ -3589,13 +3592,6 @@ sub generate_output {
 
     print @lines;
     print "\t++SP;\n" if $self->{xsub_stack_was_reset};
-  }
-
-  elsif (defined $out_num) {
-    # Indicates that this is an OUTLIST value, so an SV with the value
-    # should be pushed onto the stack
-    print "\tPUSHs(sv_newmortal());\n";
-    print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
   }
 
   else {
