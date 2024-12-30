@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 551;
+use Test::More tests => 607;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1444,6 +1444,13 @@ EOF
         |
         |PROTOTYPES: DISABLE
         |
+        |TYPEMAP: <<EOF
+        |mybool        T_MYBOOL
+        |
+        |OUTPUT
+        |T_MYBOOL
+        |    ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);" : \"sv_setsv($arg, boolSV($var));"}
+        |EOF
 EOF
 
     my @test_fns = (
@@ -1472,6 +1479,118 @@ EOF
 
             [ 0, 0, qr/sv_setiv.*ST\(0\).*\bD\b/,      "set D"    ],
             [ 0, 0, qr/sv_setiv.*ST\(1\).*\bE\b/,      "set E"    ],
+        ],
+
+        # Various types of OUTLIST where the param is the only value to
+        # be returned. Includes some types which might be optimised.
+
+        [
+            "OUTLIST void/bool",
+            [
+                'void',
+                'foo(OUTLIST bool A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(ST(0), boolSV(A));/, "set ST(0)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
+        ],
+        [
+            "OUTLIST void/mybool",
+            [
+                'void',
+                'foo(OUTLIST mybool A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(ST(0), boolSV(A));/, "set ST(0)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
+        ],
+        [
+            "OUTLIST void/int",
+            [
+                'void',
+                'foo(OUTLIST int A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setiv(ST(0), (IV)A);/,     "set ST(0)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
+        ],
+        [
+            "OUTLIST void/char*",
+            [
+                'void',
+                'foo(OUTLIST char* A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,1);/,               "extend 1"        ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setpv((SV*)ST(0), A);/,    "set ST(0)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
+        ],
+
+        # Various types of OUTLIST where the param is the second value to
+        # be returned. Includes some types which might be optimised.
+
+        [
+            "OUTLIST int/bool",
+            [
+                'int',
+                'foo(OUTLIST bool A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(ST(1), boolSV(A));/, "set ST(1)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
+        ],
+        [
+            "OUTLIST int/mybool",
+            [
+                'int',
+                'foo(OUTLIST mybool A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setsv(ST(1), boolSV(A));/, "set ST(1)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
+        ],
+        [
+            "OUTLIST int/int",
+            [
+                'int',
+                'foo(OUTLIST int A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setiv(ST(1), (IV)A);/,     "set ST(1)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
+        ],
+        [
+            "OUTLIST int/char*",
+            [
+                'int',
+                'foo(OUTLIST char* A)',
+            ],
+            [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
+            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
+            [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
+            [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
+            [ 0, 0, qr/\b\QPUSHs(sv_newmortal());/,      "push new mortal" ],
+            [ 0, 0, qr/\b\Qsv_setpv((SV*)ST(1), A);/,    "set ST(1)"       ],
+            [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
     );
 
