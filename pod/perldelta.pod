@@ -125,6 +125,16 @@ XXX Remove this section if Porting/corelist-perldelta.pl did not add any content
 
 =item *
 
+L<DynaLoader> has been upgraded from version 1.54 to 1.54_01.
+
+This fixes an error when building Perl on OS X 10.3. [GH #21751]
+
+=item *
+
+L<Module::CoreList> has been upgraded from version 5.20231129 to 5.20250118_38.
+
+=item *
+
 L<XXX> has been upgraded from version A.xx to B.yy.
 
 XXX If there was something important to note about this change, include that here.
