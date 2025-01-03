@@ -397,6 +397,22 @@ such as `Encode.pm`.
 Builds with C<-msse> and quadmath on 32-bit x86 systems would crash
 with a misaligned access early in the build. [GH #22577]
 
+=item *
+
+Fixed a bug introduced in Perl 5.34 whereby uninitialized data in the
+underlying array of an AV after it has been unshifted and resized could lead to
+segmentation faults or other errors depending on the data. [GH #21235]
+
+=item *
+
+Fixed an issue where Perl sometimes failed to correctly toggle into a dot radix
+locale. [GH #21746] [GH #22176]
+
+=item *
+
+Fixed certain syntax errors from provoking core dumps due to a double free of
+an OP. [GH #21724]
+
 =back
 
 =head1 Known Problems
