@@ -3500,10 +3500,9 @@ sub generate_output {
       # targ is never freed, the referent is never freed either. But in
       # future there might be other cases that would safely benefit.
 
-      my $target = $self->{config_optimize}
-                    && defined $outputmap && $outputmap->targetable;
 
-      if (   $target
+      if (   $self->{config_optimize}
+          && ExtUtils::Typemaps::OutputMap->targetable($expr)
           && (!$self->{xsub_targ_declared} || $self->{xsub_targ_usable}) )
       {
         # TARG is available, use it rather than creating a new mortal.

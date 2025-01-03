@@ -8,6 +8,12 @@ use Test::More;
 use lib qw( lib );
 use ExtUtils::Typemaps;
 
+# Test the  targetable() and targetable_legacy() methods from
+# ExtUtils::Typemaps::OutputMap
+
+
+# First, test the targetable_legacy() method
+
 my $output_expr_ref = {
   'T_CALLBACK' => '	sv_setpvn($arg, $var.context.value().chp(),
 		$var.context.value().size());
@@ -131,9 +137,6 @@ my $output_expr_ref = {
 ',
 };
 
-plan tests => scalar(keys %$output_expr_ref);
-
-# First, test the targetable_legacy method
 
 my %results = (
   T_UV        => { type => 'u', with_size => undef, what => '(UV)$var', what_size => undef },
@@ -171,3 +174,36 @@ foreach my $xstype (sort keys %$output_expr_ref) {
   }
 }
 
+
+# Now, test the targetable() boolean class method
+
+{
+    my @tests = (
+        # check that the basic set_foo functions are recognised
+        1,  'sv_setiv($arg,     (IV)RETVAL);',
+        1,  'sv_setuv($arg,     (UV)RETVAL);',
+        1,  'sv_setnv($arg,     (NV)RETVAL);',
+        1,  'sv_setpv($arg,     (char*)RETVAL);',
+        1,  'sv_setpvn($arg,    (char*)RETVAL, strlen(RETVAL));',
+
+        # check that nested strings, parentheses etc are parsed
+        1,  'sv_setpv($arg,     (char*)"a,\"b,c");',
+        1,  'sv_setpv($arg,     (char*)"a,b,(c,(d,(e)))");',
+
+        # RV setting is not allowed
+        '', 'sv_setrv_inc($arg,   RETVAL);',
+        '', 'sv_setrv_noinc($arg, RETVAL);',
+        '', 'sv_setref_pv($arg,   RETVAL);',
+    );
+
+    while (@tests) {
+        my $exp  = shift @tests;
+        my $code = shift @tests;
+        is(ExtUtils::Typemaps::OutputMap->targetable($code),
+           $exp,
+           "targetable($code)"
+        );
+    };
+}
+
+done_testing;

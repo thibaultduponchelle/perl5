@@ -185,38 +185,26 @@ sub targetable_legacy {
 
 =head2 targetable
 
-This is an obscure but effective optimization that used to
-live in C<ExtUtils::ParseXS> directly. Not implementing it
-should never result in incorrect use of typemaps, just less
-efficient code.
+Class method.
 
-In a nutshell, this will check whether the output code
-involves calling C<sv_setiv>, C<sv_setuv>, C<sv_setnv>, C<sv_setpv> or
-C<sv_setpvn> to set the special C<$arg> placeholder to a new value
-B<AT THE END OF THE OUTPUT CODE>. If that is the case, the code is
-eligible for using the C<TARG>-related macros to optimize this.
-Thus the name of the method: C<targetable>.
+Return a boolean indicating whether the supplied code snippet is suitable
+for using TARG as the destination SV rather than an new mortal.
 
-If this optimization is applicable, C<ExtUtils::ParseXS> will
-emit a C<dXSTARG;> definition at the start of the generated XSUB code,
-and type (see below) dependent code to set C<TARG> and push it on
-the stack at the end of the generated XSUB code.
-
-If the optimization can not be applied, this returns undef.
-If it can be applied, this method returns a hash reference containing
-the following information:
-
-  type:      Any of the characters i, u, n, p
-  with_size: Bool indicating whether this is the sv_setpvn variant
-  what:      The code that actually evaluates to the output scalar
-  what_size: If "with_size", this has the string length (as code,
-             not constant, including leading comma)
+In principle most things are, except expressions which would set the SV
+to a ref value. That can cause the referred value to never be freed, as
+targs aren't freed (at least for the lifetime of their CV). So in
+practice, we restrict it to an approved list of sv_setfoo() forms, and
+only where there is no extra code following the sv_setfoo() (so we have to
+match the closing bracket, allowing for nested brackets etc within).
 
 =cut
 
+my %targetable_cache;
+
 sub targetable {
-  my $self = shift;
-  return $self->{targetable} if exists $self->{targetable};
+  my ($class, $code) = @_;
+
+  return $targetable_cache{$code} if exists $targetable_cache{$code};
 
   our $bal; # ()-balanced
   $bal = qr[
@@ -226,6 +214,7 @@ sub targetable {
       \( (??{ $bal }) \)
     )*
   ]x;
+
   my $bal_no_comma = qr[
     (?:
       (?>[^(),]+)
@@ -245,16 +234,14 @@ sub targetable {
     , \s* (??{ $bal })
   ]xo;
 
-  my $code = $self->code;
-
   # We can still bootstrap compile 're', because in code re.pm is
   # available to miniperl, and does not attempt to load the XS code.
   use re 'eval';
 
-  my ($type, $with_size, $arg, $sarg) =
+  my $match =
     ($code =~
       m[^
-        \s+
+        \s*
         sv_set([iunp])v(n)?    # Type, is_setpvn
         \s*
         \( \s*
@@ -265,17 +252,8 @@ sub targetable {
       ]xo
   );
 
-  my $rv = undef;
-  if ($type) {
-    $rv = {
-      type      => $type,
-      with_size => $with_size,
-      what      => $arg,
-      what_size => $sarg,
-    };
-  }
-  $self->{targetable} = $rv;
-  return $rv;
+  $targetable_cache{$code} = $match;
+  return $match;
 }
 
 =head1 SEE ALSO
