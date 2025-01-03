@@ -257,6 +257,11 @@ L</Platform Support> section, instead.
 Fix compilation on platforms (e.g. "Gentoo Prefix") with only a C locale [GH #22569]
 Bug first reported downstream L<bugs.gentoo.org/939014|https://bugs.gentoo.org/939014> 
 
+=item *
+
+Fix compilation error on some systems due to a type in a printf() format.
+[GH #22793]
+
 =back
 
 =head1 Testing
@@ -395,6 +400,11 @@ unexpected behavior or a panic. This fix ensures that such invalid
 sequences are now properly detected and handled. This correction
 also resolves related issues in modules that handle UTF-8 processing,
 such as `Encode.pm`.
+
+=item *
+
+Fixed a double free error or possible memory leak when failing to compile
+certain regexps. [GH #21661]
 
 =back
 
