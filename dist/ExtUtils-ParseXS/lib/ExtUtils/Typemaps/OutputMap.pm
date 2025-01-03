@@ -206,7 +206,12 @@ sub targetable {
 
   return $targetable_cache{$code} if exists $targetable_cache{$code};
 
-  our $bal; # ()-balanced
+  # Match a string with zero or more balanced/nested parentheses
+  # within it, e.g.
+  #
+  #   "aa,bb(cc,dd)ee(ff,gg(hh,ii)jj,kk)ll"
+
+  our $bal;
   $bal = qr[
     (?:
       (?>[^()]+)
@@ -214,6 +219,13 @@ sub targetable {
       \( (??{ $bal }) \)
     )*
   ]x;
+
+  # Like $bal, but doesn't allow commas at the *top* level; e.g.
+  #
+  #       "aabb(cc,dd)ee(ff,gg(hh,ii)jj,kk)ll"
+  #
+  # Something like "aa,bb(cc,dd)" will just match/consume the "aa"
+  # part of the string.
 
   my $bal_no_comma = qr[
     (?:
@@ -223,16 +235,13 @@ sub targetable {
     )+
   ]x;
 
-  # matches variations on (SV*)
+  # Matches "(SV*)", with optional whitespace within/after the parentheses
+
   my $sv_cast = qr[
     (?:
       \( \s* SV \s* \* \s* \) \s*
     )?
   ]x;
-
-  my $size = qr[ # Third arg (to setpvn)
-    , \s* (??{ $bal })
-  ]xo;
 
   # We can still bootstrap compile 're', because in code re.pm is
   # available to miniperl, and does not attempt to load the XS code.
@@ -242,13 +251,28 @@ sub targetable {
     ($code =~
       m[^
         \s*
-        sv_set([iunp])v(n)?    # Type, is_setpvn
-        \s*
-        \( \s*
-          $sv_cast \$arg \s* , \s*
-          ( $bal_no_comma )    # Set from
-          ( $size )?           # Possible sizeof set-from
-        \s* \) \s* ; \s* $
+        (?:
+            # 2-arg functions
+            sv_set([iunp])v
+            \s*
+            \( \s*
+              $sv_cast \$arg         # arg 1: SV to set
+              \s* , \s*
+              $bal_no_comma          # arg 2: value to use
+        |
+            # 3-arg functions
+            sv_setpvn
+            \s*
+            \( \s*
+              $sv_cast \$arg         # arg 1: SV to set
+              \s* , \s*
+              $bal_no_comma          # arg 2: value to use
+              , \s*
+              (??{ $bal })           # arg 3: length
+        )
+        \s* \)
+        \s* ; \s*
+        $
       ]xo
   );
 

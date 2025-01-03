@@ -186,9 +186,19 @@ foreach my $xstype (sort keys %$output_expr_ref) {
         1,  'sv_setpv($arg,     (char*)RETVAL);',
         1,  'sv_setpvn($arg,    (char*)RETVAL, strlen(RETVAL));',
 
+        # correct number of arguments
+
+        '', 'sv_setiv($arg,     (IV)RETVAL, 1);',
+        '', 'sv_setuv($arg,     (UV)RETVAL, 1);',
+        '', 'sv_setnv($arg,     (NV)RETVAL, 1);',
+        '', 'sv_setpv($arg,     (char*)RETVAL, 1);',
+        '', 'sv_setpvn($arg);',
+
         # check that nested strings, parentheses etc are parsed
-        1,  'sv_setpv($arg,     (char*)"a,\"b,c");',
-        1,  'sv_setpv($arg,     (char*)"a,b,(c,(d,(e)))");',
+        1,  'sv_setpv($arg,     (char*) foo(a,(b,(c))));',
+        # XXX strings and \" not yet parsed
+        '', 'sv_setpv($arg,     (char*)"a,\"b,c");',
+        '', 'sv_setpv($arg,     (char*)"a,b,(c,(d,(e)))");',
 
         # RV setting is not allowed
         '', 'sv_setrv_inc($arg,   RETVAL);',
