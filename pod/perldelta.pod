@@ -392,6 +392,11 @@ sequences are now properly detected and handled. This correction
 also resolves related issues in modules that handle UTF-8 processing,
 such as `Encode.pm`.
 
+=item *
+
+Builds with C<-msse> and quadmath on 32-bit x86 systems would crash
+with a misaligned access early in the build. [GH #22577]
+
 =back
 
 =head1 Known Problems
