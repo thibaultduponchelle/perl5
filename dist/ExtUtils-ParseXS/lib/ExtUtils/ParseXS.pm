@@ -1069,22 +1069,16 @@ EOF
         # Do any variable declarations associated with having a return value
         if ($self->{xsub_return_type} ne "void") {
 
-          # If it looks like the output typemap code can be hacked to
-          # use a TARG to optimise returning the value (rather than
-          # creating a mortal each time), declare the TARG. (dXSTARG
-          # checks whether the ENTERSUB op has a TARG, and if not, creates
-          # a mortal instead for TARG).
-          #
-          # In an ideal world TARG would just be declared in a small scope
-          # containing the PUSHi() or whatever. However originally it
-          # was declared here, early in the output code, and some XS
-          # modules expect the TARG var to be available. So continue to
-          # declare it here.
+          # Emit an early dXSTARG for backwards-compatibility reasons.
+          # Recent code emits a dXSTARG in a tighter scope and under
+          # additional circumstances, but some XS code relies on TARG
+          # having been declared. So continue to declare it early under
+          # the original circumstances.
           my $outputmap = $self->{typemaps_object}->get_outputmap( ctype => $self->{xsub_return_type} );
 
           if (    $self->{config_optimize}
               and $outputmap
-              and $outputmap->targetable)
+              and $outputmap->targetable_legacy)
           {
             $self->{xsub_targ_declared} = 1;
             $self->{xsub_targ_usable}   = 1;

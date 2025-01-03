@@ -93,6 +93,96 @@ sub cleaned_code {
   return $code;
 }
 
+=head2 targetable_legacy
+
+Do not use for new code.
+
+This is the original version of the targetable() method, whose behaviour
+has been frozen for backwards compatibility. It is used to determine
+whether to emit an early C<dXSTARG>, which will be in scope for most of
+the XSUB. More recent XSUB code generation emits a C<dXSTARG> in a tighter
+scope if one has not already been emitted. Some XS code assumes that
+C<TARG> has been declared, so continue to declare it under the same
+conditions as before. The newer C<targetable> method may be true under
+additional circumstances.
+
+If the optimization can not be applied, this returns undef.  If it can be
+applied, this method returns a hash reference containing the following
+information:
+
+  type:      Any of the characters i, u, n, p
+  with_size: Bool indicating whether this is the sv_setpvn variant
+  what:      The code that actually evaluates to the output scalar
+  what_size: If "with_size", this has the string length (as code,
+             not constant, including leading comma)
+
+
+=cut
+
+sub targetable_legacy {
+  my $self = shift;
+  return $self->{targetable_legacy} if exists $self->{targetable_legacy};
+
+  our $bal; # ()-balanced
+  $bal = qr[
+    (?:
+      (?>[^()]+)
+      |
+      \( (??{ $bal }) \)
+    )*
+  ]x;
+  my $bal_no_comma = qr[
+    (?:
+      (?>[^(),]+)
+      |
+      \( (??{ $bal }) \)
+    )+
+  ]x;
+
+  # matches variations on (SV*)
+  my $sv_cast = qr[
+    (?:
+      \( \s* SV \s* \* \s* \) \s*
+    )?
+  ]x;
+
+  my $size = qr[ # Third arg (to setpvn)
+    , \s* (??{ $bal })
+  ]xo;
+
+  my $code = $self->code;
+
+  # We can still bootstrap compile 're', because in code re.pm is
+  # available to miniperl, and does not attempt to load the XS code.
+  use re 'eval';
+
+  my ($type, $with_size, $arg, $sarg) =
+    ($code =~
+      m[^
+        \s+
+        sv_set([iunp])v(n)?    # Type, is_setpvn
+        \s*
+        \( \s*
+          $sv_cast \$arg \s* , \s*
+          ( $bal_no_comma )    # Set from
+          ( $size )?           # Possible sizeof set-from
+        \s* \) \s* ; \s* $
+      ]xo
+  );
+
+  my $rv = undef;
+  if ($type) {
+    $rv = {
+      type      => $type,
+      with_size => $with_size,
+      what      => $arg,
+      what_size => $sarg,
+    };
+  }
+  $self->{targetable_legacy} = $rv;
+  return $rv;
+}
+
 =head2 targetable
 
 This is an obscure but effective optimization that used to

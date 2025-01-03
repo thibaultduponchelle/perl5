@@ -133,6 +133,8 @@ my $output_expr_ref = {
 
 plan tests => scalar(keys %$output_expr_ref);
 
+# First, test the targetable_legacy method
+
 my %results = (
   T_UV        => { type => 'u', with_size => undef, what => '(UV)$var', what_size => undef },
   T_IV        => { type => 'i', with_size => undef, what => '(IV)$var', what_size => undef },
@@ -157,7 +159,7 @@ foreach my $xstype (sort keys %$output_expr_ref) {
     xstype => $xstype,
     code => $output_expr_ref->{$xstype}
   );
-  my $targetable = $om->targetable;
+  my $targetable = $om->targetable_legacy;
   if (not exists($results{$xstype})) {
     ok(not(defined($targetable)), "$xstype not targetable")
       or diag(join ", ", map {defined($_) ? $_ : "<undef>"} %$targetable);
