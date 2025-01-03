@@ -376,7 +376,8 @@ Now C<strftime> stringifies its first argument, as before. [GH #22498]
 
 =item *
 
-XXX
+Builds with C<-msse> and quadmath on 32-bit x86 systems would crash
+with a misaligned access early in the build. [GH #22577]
 
 =item *
 
