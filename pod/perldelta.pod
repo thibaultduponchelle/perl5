@@ -125,6 +125,18 @@ XXX Remove this section if F<Porting/corelist-perldelta.pl> did not add any cont
 
 =item *
 
+L<File::Spec> has been upgraded from version 3.90 to 3.91.
+
+=item *
+
+L<Module::CoreList> has been upgraded from version 5.20240609 to 5.20250118_40.
+
+=item *
+
+L<warnings> has been upgraded from version 1.69 to 1.70.
+
+=item *
+
 L<XXX> has been upgraded from version A.xx to B.yy.
 
 XXX If there was something important to note about this change, include that here.
