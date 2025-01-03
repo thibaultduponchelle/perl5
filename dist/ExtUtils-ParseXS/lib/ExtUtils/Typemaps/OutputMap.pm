@@ -216,6 +216,8 @@ sub targetable {
     (?:
       (?>[^()]+)
       |
+      " ([^"] | \\")* "
+      |
       \( (??{ $bal }) \)
     )*
   ]x;
@@ -230,6 +232,8 @@ sub targetable {
   my $bal_no_comma = qr[
     (?:
       (?>[^(),]+)
+      |
+      " ([^"] | \\")* "
       |
       \( (??{ $bal }) \)
     )+
@@ -268,7 +272,7 @@ sub targetable {
               \s* , \s*
               $bal_no_comma          # arg 2: value to use
               , \s*
-              (??{ $bal })           # arg 3: length
+              $bal_no_comma          # arg 3: length
         )
         \s* \)
         \s* ; \s*
