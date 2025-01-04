@@ -239,12 +239,25 @@ sub targetable {
     )+
   ]x;
 
-  # Matches "(SV*)", with optional whitespace within/after the parentheses
+  # the SV whose value is to be set (typically arg 1)
+  # Note that currently ParseXS will always call with $arg expanded
+  # to 'RETVALSV', but also match other possibilities too for future
+  # use.
 
-  my $sv_cast = qr[
+  my $target = qr[
     (?:
-      \( \s* SV \s* \* \s* \) \s*
+      \( \s* SV \s* \* \s* \) \s*   # optional SV* cast
     )?
+    (?:
+        \$arg
+    |
+        RETVAL
+    |
+        RETVALSV
+    |
+        ST\(\d+\)
+    )
+    \s*
   ]x;
 
   # We can still bootstrap compile 're', because in code re.pm is
@@ -260,16 +273,16 @@ sub targetable {
             sv_set([iunp])v
             \s*
             \( \s*
-              $sv_cast \$arg         # arg 1: SV to set
-              \s* , \s*
+              $target                # arg 1: SV to set
+              , \s*
               $bal_no_comma          # arg 2: value to use
         |
             # 3-arg functions
             sv_setpvn
             \s*
             \( \s*
-              $sv_cast \$arg         # arg 1: SV to set
-              \s* , \s*
+              $target                # arg 1: SV to set
+              , \s*
               $bal_no_comma          # arg 2: value to use
               , \s*
               $bal_no_comma          # arg 3: length

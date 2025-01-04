@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 619;
+use Test::More tests => 624;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1797,6 +1797,7 @@ EOF
         |TYPEMAP: <<EOF
         |const int     T_IV
         |const long    T_MYIV
+        |const short   T_MYSHORT
         |
         |INPUT
         |T_MYIV
@@ -1805,6 +1806,9 @@ EOF
         |OUTPUT
         |T_OBJECT
         |    sv_setiv($arg, (IV)$var);
+        |
+        |T_MYSHORT
+        |    ${ "$var" eq "RETVAL" ? \"$arg = $var;" : \"sv_setiv($arg, $var);" }
         |EOF
 EOF
 
@@ -1931,6 +1935,19 @@ EOF
             # XXX when this is fixed, update the test
             [ 0, 0, qr/\bsv_setiv\b/,   "has sv_setiv" ],
         ],
+
+        [
+            "dXSTARG with variant typemap",
+            [
+                'void',
+                'foo(OUTLIST const short a)',
+            ],
+            [ 0, 0, qr/\bdXSTARG;/,      "has targ def" ],
+            [ 0, 0, qr/\bTARGi\b/,       "has TARGi" ],
+            [ 0, 1, qr/\bsv_setiv\(/,    "has NO sv_setiv" ],
+            [ 0, 0, qr/\bXSRETURN\(1\)/, "has XSRETURN(1)" ],
+        ],
+
 
     );
 

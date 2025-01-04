@@ -186,6 +186,14 @@ foreach my $xstype (sort keys %$output_expr_ref) {
         1,  'sv_setpv($arg,     (char*)RETVAL);',
         1,  'sv_setpvn($arg,    (char*)RETVAL, strlen(RETVAL));',
 
+        # variants of the SV to set
+
+        1,  'sv_setiv((SV*)$arg,               (IV)RETVAL);',
+        1,  'sv_setuv(  (  SV  *  )  $arg,     (UV)RETVAL);',
+        1,  'sv_setnv((SV*)RETVALSV,           (NV)RETVAL);',
+        1,  'sv_setpv(RETVAL,                  (char*)RETVAL);',
+        1,  'sv_setpvn(ST(0),                  (char*)RETVAL, strlen(RETVAL));',
+
         # too few arguments
 
         '', 'sv_setiv($arg);',

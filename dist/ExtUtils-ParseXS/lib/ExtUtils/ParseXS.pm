@@ -3502,7 +3502,7 @@ sub generate_output {
 
 
       if (   $self->{config_optimize}
-          && ExtUtils::Typemaps::OutputMap->targetable($expr)
+          && ExtUtils::Typemaps::OutputMap->targetable($evalexpr)
           && (!$self->{xsub_targ_declared} || $self->{xsub_targ_usable}) )
       {
         # TARG is available, use it rather than creating a new mortal.
