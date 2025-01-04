@@ -3515,11 +3515,14 @@ sub generate_output {
         # Convert sv_setiv(RETVALSV, val) to TARGi(val,1) and similarly
         # for uv and nv. These macros skip a function call for the common
         # case where TARG is already a simple IV/UV/NV.
+        # Also convert the _mg forms. Since we're setting the TARG,
+        # there shouldn't be set magic on the TARG SV, so the _mg action
+        # can be safely ignored.
 
         $evalexpr =~ s{
                       ^
                       (\s*)
-                      sv_set([iun])v
+                      sv_set([iun])v(?:_mg)?
                       \(
                         \s* RETVALSV \s* ,
                         \s* (.*)

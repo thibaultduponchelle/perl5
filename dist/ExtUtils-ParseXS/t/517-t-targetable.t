@@ -180,11 +180,24 @@ foreach my $xstype (sort keys %$output_expr_ref) {
 {
     my @tests = (
         # check that the basic set_foo functions are recognised
+        1,  'sv_set_undef($arg);',
+        1,  'sv_set_true($arg);',
+        1,  'sv_set_false($arg);',
+
+        1,  'sv_set_bool($arg,  (bool)RETVAL);',
         1,  'sv_setiv($arg,     (IV)RETVAL);',
+        1,  'sv_setiv_mg($arg,  (IV)RETVAL);',
         1,  'sv_setuv($arg,     (UV)RETVAL);',
+        1,  'sv_setuv_mg($arg,  (UV)RETVAL);',
         1,  'sv_setnv($arg,     (NV)RETVAL);',
+        1,  'sv_setnv_mg($arg,  (NV)RETVAL);',
         1,  'sv_setpv($arg,     (char*)RETVAL);',
+        1,  'sv_setpv_mg($arg,  (char*)RETVAL);',
+
         1,  'sv_setpvn($arg,    (char*)RETVAL, strlen(RETVAL));',
+        1,  'sv_setpvn_mg($arg, (char*)RETVAL, strlen(RETVAL));',
+        1,  'sv_setpv_bufsize($arg, (char*)RETVAL, 1024);',
+
 
         # variants of the SV to set
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 624;
+use Test::More tests => 633;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1798,6 +1798,9 @@ EOF
         |const int     T_IV
         |const long    T_MYIV
         |const short   T_MYSHORT
+        |undef_t       T_MYUNDEF
+        |ivmg_t        T_MYIVMG
+        |bufsize_t     T_MYBUFSIZE
         |
         |INPUT
         |T_MYIV
@@ -1809,6 +1812,15 @@ EOF
         |
         |T_MYSHORT
         |    ${ "$var" eq "RETVAL" ? \"$arg = $var;" : \"sv_setiv($arg, $var);" }
+        |
+        |T_MYUNDEF
+        |    sv_set_undef($arg);
+        |
+        |T_MYIVMG
+        |    sv_setiv_mg($arg, (IV)RETVAL);
+        |
+        |T_MYBUFSIZE
+        |    sv_setpv_bufsize($arg, (IV)RETVAL, 1024);
         |EOF
 EOF
 
@@ -1948,7 +1960,35 @@ EOF
             [ 0, 0, qr/\bXSRETURN\(1\)/, "has XSRETURN(1)" ],
         ],
 
+        [
+            "dXSTARG with sv_set_undef",
+            [
+                'void',
+                'foo(OUTLIST undef_t a)',
+            ],
+            [ 0, 0, qr/\bdXSTARG;/,          "has targ def" ],
+            [ 0, 0, qr/\bsv_set_undef\(/,    "has sv_set_undef" ],
+        ],
 
+        [
+            "dXSTARG with sv_setiv_mg",
+            [
+                'ivmg_t',
+                'foo()',
+            ],
+            [ 0, 0, qr/\bdXSTARG;/,          "has targ def" ],
+            [ 0, 0, qr/\bTARGi\(/,           "has TARGi" ],
+        ],
+
+        [
+            "dXSTARG with sv_setpv_bufsize",
+            [
+                'bufsize_t',
+                'foo()',
+            ],
+            [ 0, 0, qr/\bdXSTARG;/,            "has targ def" ],
+            [ 0, 0, qr/\bsv_setpv_bufsize\(/,  "has sv_setpv_bufsize" ],
+        ],
     );
 
     test_many($preamble, 'XS_Foo_', \@test_fns);

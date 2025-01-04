@@ -269,8 +269,14 @@ sub targetable {
       m[^
         \s*
         (?:
+            # 1-arg functions
+            sv_set_(?:undef|true|false)
+            \s*
+            \( \s*
+              $target                # arg 1: SV to set
+        |
             # 2-arg functions
-            sv_set([iunp])v
+            sv_set(?:iv|iv_mg|uv|uv_mg|nv|nv_mg|pv|pv_mg|_bool)
             \s*
             \( \s*
               $target                # arg 1: SV to set
@@ -278,7 +284,7 @@ sub targetable {
               $bal_no_comma          # arg 2: value to use
         |
             # 3-arg functions
-            sv_setpvn
+            sv_set(?:pvn|pvn_mg|pv_bufsize)
             \s*
             \( \s*
               $target                # arg 1: SV to set
