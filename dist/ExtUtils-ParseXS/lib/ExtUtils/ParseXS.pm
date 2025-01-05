@@ -3347,8 +3347,7 @@ sub generate_output {
   }
 
   # ------------------------------------------------------------------
-  # In the two branches of this big if/else, handle the three types of
-  # return value:
+  # Now emit code for the three types of return value:
   #
   #   RETVAL           - The usual case: store an SV at ST(0) which is set
   #                      to the value of RETVAL. This is typically a new
@@ -3359,11 +3358,44 @@ sub generate_output {
   #                      local var set from that parameter. (May also use
   #                      TARG if not already used by RETVAL).
   #
-  #   OUT param        - update the SV at ST(n) which corresponds to that
+  #   OUT/OUTPUT param - update the SV at ST(n) which corresponds to that
   #                      parameter with the current value of the local var
   #                      set from that parameter.
 
-  if ($var eq 'RETVAL' or defined $out_num) {
+  if ($var ne 'RETVAL' and not defined $out_num) {
+    # This is a normal OUTPUT var - i.e. a named parameter whose
+    # corresponding arg on the stack should be updated with the
+    # parameter's current value by using the code contained in the
+    # output typemap.
+    #
+    # Note that for non-RETVAL args being *updated* (as opposed to
+    # replaced), this branch relies on the typemap to Do The Right
+    # Thing. For example, T_BOOL currently has this typemap entry:
+    #
+    # ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);" : \"sv_setsv($arg, boolSV($var));"}
+    #
+    #  which means that if we hit this branch, $evalexpr will have been
+    #  expanded to something like sv_setsv(ST(2), boolSV(foo))
+
+    unless (defined $num) {
+      $self->blurt("Internal error: OUT parameter has undefined argument number");
+      return;
+    }
+
+    # Use the code on the OUTPUT line if specified, otherwise use the
+    # typemap
+    my $code = defined $output_code
+        ? "\t$output_code\n"
+        : $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
+    print $code;
+
+    # For parameters in the OUTPUT section, honour the SETMAGIC in force
+    # at the time. For parameters instead being output because of an OUT
+    # keyword in the signature, assume set magic always.
+    print "\tSvSETMAGIC($arg);\n" if !$param->{in_output} || $do_setmagic;
+    return;
+  }
+
     # RETVAL or "OUTLIST foo".
     # An SV with value of RETVAL/foo should be pushed onto the stack.
 
@@ -3588,40 +3620,6 @@ sub generate_output {
 
     print @lines;
     print "\t++SP;\n" if $self->{xsub_stack_was_reset};
-  }
-
-  else {
-    # This is a normal OUTPUT var - i.e. a named parameter whose
-    # corresponding arg on the stack should be updated with the
-    # parameter's current value by using the code contained in the
-    # output typemap.
-    #
-    # Note that for non-RETVAL args being *updated* (as opposed to
-    # replaced), this branch relies on the typemap to Do The Right
-    # Thing. For example, T_BOOL currently has this typemap entry:
-    #
-    # ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);" : \"sv_setsv($arg, boolSV($var));"}
-    #
-    #  which means that if we hit this branch, $evalexpr will have been
-    #  expanded to something like sv_setsv(ST(2), boolSV(foo))
-
-    unless (defined $num) {
-      $self->blurt("Internal error: OUT parameter has undefined argument number");
-      return;
-    }
-
-    # Use the code on the OUTPUT line if specified, otherwise use the
-    # typemap
-    my $code = defined $output_code
-        ? "\t$output_code\n"
-        : $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
-    print $code;
-
-    # For parameters in the OUTPUT section, honour the SETMAGIC in force
-    # at the time. For parameters instead being output because of an OUT
-    # keyword in the signature, assume set magic always.
-    print "\tSvSETMAGIC($arg);\n" if !$param->{in_output} || $do_setmagic;
-  }
 }
 
 
