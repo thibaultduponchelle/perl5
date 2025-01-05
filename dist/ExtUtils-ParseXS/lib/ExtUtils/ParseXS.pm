@@ -1278,12 +1278,16 @@ EOF
         if ($outlist_count) {
           my $ext = $outlist_count;
           ++$ext if ($retval && $retval->{in_output}) || $implicit_OUTPUT_RETVAL;
-          print "\tXSprePUSH;";
+          print "\tXSprePUSH;\n";
           # XSprePUSH resets SP to the base of the stack frame; must PUSH
           # any return values
           $self->{xsub_stack_was_reset} = 1;
 
-          print "\tEXTEND(SP,$ext);\n";
+          # The entersub will gave been called with at least a GV or CV on
+          # the stack in addition to at least min_args args, so only need
+          # to extend if we're returning more than that.
+          print "\tEXTEND(SP,$ext);\n"
+                              if $ext > $self->{xsub_sig}{min_args} + 1;
         }
 
         # ----------------------------------------------------------------
