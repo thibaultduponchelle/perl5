@@ -106,6 +106,17 @@ locale.  [L<GH #21746|https://github.com/Perl/perl5/issues/21746>]
 Stopped certain syntax errors from provoking core dumps due to a double free of
 an OP.  [L<GH #21724|https://github.com/Perl/perl5/issues/21724>]
 
+=item *
+
+Fixed a double free error or possible memory leak when failing to compile
+certain regexps.  [L<GH #21661|https://github.com/Perl/perl5/issues/21661>]
+
+=item *
+
+Fixed the initialization of Perl's querylocale() emulation so that the locale
+is set correctly if the environment specifies a non-C locale.
+[L<GH #21366|https://github.com/Perl/perl5/issues/21366>]
+
 =back
 
 =head1 Acknowledgements
