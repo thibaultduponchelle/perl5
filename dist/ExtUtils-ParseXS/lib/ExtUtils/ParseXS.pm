@@ -3446,9 +3446,9 @@ sub generate_output {
   # to some other value:
   #   - back to e.g. 'ST(0)' if there is no other use of the SV;
   #   - to TARG when we are using the OP_ENTERSUB's targ;
-  #   - to 'RETVAL' when then return type is SV* (and thus ntype is SVPtr)
-  #     and so RETVAL will already have been declared as type 'SV*' and
-  #     thus there is no need for a RETVALSV too.
+  #   - to $var when then return type is SV* (and thus ntype is SVPtr)
+  #     and so the variable will already have been declared as type 'SV*'
+  #     and thus there is no need for a RETVALSV too.
   #
   # Note that we evaluate the typemap early here so that the various
   # regexes below such as /^\s*\Q$arg\E\s*=/ can be matched against
@@ -3510,7 +3510,7 @@ sub generate_output {
       $do_mortalize = 1;
 
       # See comment above about when return type is SVPtr (i.e. SV*)
-      $retvar = 'RETVAL' if $ntype eq "SVPtr";
+      $retvar = $var if $ntype eq "SVPtr";
     }
   }
   else {
@@ -3594,13 +3594,15 @@ sub generate_output {
 
   push @lines, "\tRETVALSV = sv_newmortal();\n" if $want_newmortal;
 
-  # Emit the typemap, unless it's of the trivial "RETVAL = RETVAL"
-  # form, which is sometimes generated for the SVPtr optimisation.
+  # Emit the typemap, unless it's of the trivial "var = var"
+  # form, which is generated when the typemap is of the form
+  # '$arg = $var' and the SVPtr optimisation is using $var for the
+  # destination.
 
   # (See comments above about sometimes using RETVAL/TARG/ST(0)
   # instead of RETVALSV.)
   $evalexpr =~ s/\bRETVALSV\b/$retvar/g if $retvar ne 'RETVALSV';
-  unless ($evalexpr =~ /^\s*RETVAL\s*=\s*RETVAL\s*;\s*$/) {
+  unless ($evalexpr =~ /^\s*\Q$var\E\s*=\s*\Q$var\E\s*;\s*$/) {
     push @lines, split /^/, $evalexpr
   }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 643;
+use Test::More tests => 670;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -91,14 +91,20 @@ sub test_many {
 
         tie *FH, 'Capture';
         my $pxs = ExtUtils::ParseXS->new;
+        my $err;
         my $stderr = PrimitiveCapture::capture_stderr(sub {
             eval {
                 $pxs->process_file( filename => \$text, output => \*FH);
-            }
+            };
+            $err = $@;
         });
 
         my $out = tied(*FH)->content;
         untie *FH;
+
+        if (length $err) {
+            die "$desc_prefix: eval error, aborting:\n$err\n";
+        }
 
         # trim the output to just the function in question to make
         # test diagnostics smaller.
@@ -1616,6 +1622,124 @@ EOF
             [ 0, 0, qr/\b\Qsv_setiv(RETVALSV, (IV)A);/,  "set RETVALSV"   ],
             [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
+        ],
+    );
+
+    test_many($preamble, 'XS_Foo_', \@test_fns);
+}
+
+{
+    # Test OUTLIST on 'assign' format typemaps.
+    #
+    # Test code for returning the value of OUTLIST vars for typemaps of
+    # the form
+    #
+    #   $arg = $val;
+    # or
+    #   $arg = newFoo($arg);
+    #
+    # Includes whether RETVALSV ha been optimised away.
+    #
+    # Some of the typemaps don't expand to the 'assign' form yet for
+    # OUTLIST vars; we test those too.
+
+    my $preamble = Q(<<'EOF');
+        |MODULE = Foo PACKAGE = Foo
+        |
+        |PROTOTYPES: DISABLE
+        |
+        |TYPEMAP: <<EOF
+        |
+        |svref_fix   T_SVREF_REFCOUNT_FIXED
+        |mysvref_fix T_MYSVREF_REFCOUNT_FIXED
+        |mybool      T_MYBOOL
+        |
+        |OUTPUT
+        |T_SV
+        |    $arg = $var;
+        |
+        |T_MYSVREF_REFCOUNT_FIXED
+        |    $arg = newRV_noinc((SV*)$var);
+        |
+        |T_MYBOOL
+        |    $arg = boolSV($var);
+        |
+        |EOF
+EOF
+
+    my @test_fns = (
+        [
+            # This uses 'SV*' (handled specially by EU::PXS) but with the
+            # output code overridden to use the direct $arg = $var assign,
+            # which is normally only used for RETVAL return
+            "OUTLIST T_SV",
+            [
+                'int',
+                'foo(OUTLIST SV * A)',
+            ],
+            [ 0, 1, qr/\bRETVALSV\b/,                        "NO RETVALSV"    ],
+            [ 0, 0, qr/\b\QA = sv_2mortal(A);/,              "mortalise A"    ],
+            [ 0, 0, qr/\b\QST(1) = A;/,                      "store A"        ],
+        ],
+
+        [
+            "OUTLIST T_SVREF",
+            [
+                'int',
+                'foo(OUTLIST SVREF A)',
+            ],
+            [ 0, 0, qr/SV\s*\*\s*RETVALSV;/,                 "RETVALSV"       ],
+            [ 0, 0, qr/\b\QRETVALSV = newRV((SV*)A)/,        "newREF(A)"      ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_2mortal(RETVALSV);/,"mortalise RSV"  ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;/,               "store RETVALSV" ],
+        ],
+
+        [
+            # this one doesn't use assign for OUTLIST
+            "OUTLIST T_SVREF_REFCOUNT_FIXED",
+            [
+                'int',
+                'foo(OUTLIST svref_fix A)',
+            ],
+            [ 0, 0, qr/SV\s*\*\s*RETVALSV;/,                 "RETVALSV"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ ,     "new mortal"     ],
+            [ 0, 0, qr/\b\Qsv_setrv_noinc(RETVALSV, (SV*)A);/,"setrv()"       ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;/,               "store RETVALSV" ],
+        ],
+        [
+            # while this one uses assign
+            "OUTLIST T_MYSVREF_REFCOUNT_FIXED",
+            [
+                'int',
+                'foo(OUTLIST mysvref_fix A)',
+            ],
+            [ 0, 0, qr/SV\s*\*\s*RETVALSV;/,                 "RETVALSV"       ],
+            [ 0, 0, qr/\b\QRETVALSV = newRV_noinc((SV*)A)/,  "newRV(A)"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_2mortal(RETVALSV);/,"mortalise RSV"  ],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;/,               "store RETVALSV" ],
+        ],
+
+        [
+            # this one doesn't use assign for OUTLIST
+            "OUTLIST T_BOOL",
+            [
+                'int',
+                'foo(OUTLIST bool A)',
+            ],
+            [ 0, 0, qr/SV\s*\*\s*RETVALSV;/,                 "RETVALSV"       ],
+            [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ ,     "new mortal"     ],
+            [ 0, 0, qr/\b\Qsv_setsv(RETVALSV, boolSV(A));/,  "setsv(boolSV())"],
+            [ 0, 0, qr/\b\QST(1) = RETVALSV;/,               "store RETVALSV" ],
+        ],
+        [
+            # while this one uses assign
+            "OUTLIST T_MYBOOL",
+            [
+                'int',
+                'foo(OUTLIST mybool A)',
+            ],
+            [ 0, 1, qr/\bRETVALSV\b/,                        "NO RETVALSV"    ],
+            [ 0, 0, qr/\b\QST(1) = boolSV(A)/,               "store boolSV(A)"],
         ],
     );
 
