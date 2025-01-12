@@ -3130,40 +3130,74 @@ sub fetch_para {
 # $self->generate_output($param[, $out_num])
 #
 # Emit code to: possibly create, then set the value of, and possibly
-# push, an output SV, based on $param.
+# push, an output SV, based on the values in the $param object.
 #
-# $out_num is optional and only has meaning when an OUTLIST var is
-# being pushed - it indicates the position on the stack of that push.
+# $out_num is optional and its presence indicates that an OUTLIST var is
+# being pushed: it indicates the position on the stack of that SV.
 #
-# This function emits code such as "sv_setiv(ST(0), (IV)foo)", based on the
-# typemap OUTPUT entry associated with $type, passing the typemap code
-# through a double-quotish context eval first to expand variables such as
-# $arg, $var.
+# This function emits code such as "sv_setiv(ST(0), (IV)foo)", based on
+# the typemap OUTPUT entry associated with $type. It passes the typemap
+# code through a double-quotish context eval first to expand variables
+# such as $arg and $var. It also tries to optimise the emitted code in
+# various ways, such as using TARG where available rather than calling
+# sv_newmortal() to obtain an SV to set to the return value.
 #
-# It recognises that output typemaps fall into two basic categories,
+# It expects to handle three categories of variable, with these general
+# actions:
+#
+#   RETVAL, i.e. the return value
+#
+#     Create a new SV; use the typemap to set its value to RETVAL; then
+#     store it at ST(0).
+#
+#   OUTLIST foo
+#
+#     Create a new SV; use the typemap to set its value to foo; then store
+#     it at ST($out_num-1).
+#
+#   OUTPUT: foo / OUT foo
+#
+#     Update the value of the passed arg ST($num-1), using the typemap to
+#     set its value
+#
+# Note that it's possible for this function to be called *twice* for the
+# same variable: once for OUTLIST, and once for an 'OUTPUT:' entry.
+#
+# It treats output typemaps as falling into two basic categories,
 # exemplified by:
 #
 #     sv_setFoo($arg, (Foo)$var));
+#
 #     $arg = newFoo($var);
 #
-# When $var is 'RETVAL':
-#     for the first category, it creates a new mortal, then uses the
-#     typemap to set its value, then stores that SV at ST(0);
-#     for the second, it stores the SV created by the typemap and mortalises
-#     it.
-# For other OUTPUT vars, it just uses the typemap to update the arg's
-# value and doesn't distinguish between the two categories.
+# The first form is the most general and can be used to set the SV value
+# for all of the three variable categories above. For the first two
+# categories it typically uses a new mortal, while for the last, it just
+# uses the passed arg SV.
+#
+# The assign form of the typemap can be considered an optimisation of
+# sv_setsv($arg, newFoo($var)), and is applicable when newFOO() is known
+# to return a new SV. So rather than copying it to yet another new SV,
+# just return as-is, possibly after mortalising it,
 #
 # Some typemaps evaluate to different code depending on whether the var is
 # RETVAL, e.g T_BOOL is currently defined as:
 #
-#    ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);" : \"sv_setsv($arg, boolSV($var));"}
+#    ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);"
+#                         : \"sv_setsv($arg, boolSV($var));"}
 #
 # So we examine the typemap *after* evaluation to determine whether it's
 # of the form '$arg = ' or not.
 #
-# This function sometimes emits a C variable called RETVALSV. This is
-# private and shouldn't be referenced within XS code or typemaps.
+# Note that *currently* we generally end up with the pessimised option for
+# OUTLIST vars, since the typmaps onlt check for RETVAL.
+#
+# Currently RETVAL and 'OUTLIST var' mostly share the same code paths
+# below, so they both benefit from optimisations such as using TARG
+# instead of creating a new mortal, and using the RETVALSV C var to keep
+# track of the temp SV, rather than repeatedly retrieving it from ST(0)
+# etc. Note that RETVALSV is private and shouldn't be referenced within XS
+# code or typemaps.
 
 sub generate_output {
   my ExtUtils::ParseXS $self = shift;
@@ -3174,6 +3208,8 @@ sub generate_output {
     = @{$param}{qw(type arg_num var do_setmagic output_code)};
 
   if ($var eq 'RETVAL') {
+    # Do some preliminary RETVAL-specific checks and settings.
+
     # Only OUT/OUTPUT vars (which update one of the passed args) should be
     # calling set magic; RETVAL and OUTLIST should be setting the value of
     # a fresh mortal or TARG. Note that a param can be both OUTPUT and
@@ -3192,11 +3228,12 @@ sub generate_output {
     #     int
     #     foo(long RETVAL)
     #
-    # In the above, 'long' is used for the var's declaration, while
-    # 'int' is used to generate the return code (for backwards
+    # In the above, 'long' is used for the RETVAL C var's declaration,
+    # while 'int' is used to generate the return code (for backwards
     # compatibility).
     $type = $self->{xsub_return_type};
   }
+
 
   # ------------------------------------------------------------------
   # Do initial processing of $type, including creating various derived
@@ -3215,12 +3252,13 @@ sub generate_output {
   # $subtype is really just for the T_ARRAY / DO_ARRAY_ELEM code below,
   # where it's the type of each array element. But it's also passed to
   # the typemap template (although undocumented and virtually unused).
+  # Basically for a type like FooArray or FooArrayPtr, the subtype is Foo.
   (my $subtype = $ntype) =~ s/(?:Array)?(?:Ptr)?$//;
 
   # whitespace-tidy the type
   $type = ExtUtils::Typemaps::tidy_type($type);
 
-  # The type looked up in the eval is Foo__Bar rather than Foo::Bar
+  # The type as supplied to the eval is Foo__Bar rather than Foo::Bar
   my $eval_type = $type;
   $eval_type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
 
@@ -3230,9 +3268,11 @@ sub generate_output {
   # OUTPUT line should not be used.
   undef $output_code if $out_num;
 
+
   # ------------------------------------------------------------------
   # Find the template code (pre any eval) and store it in $expr.
-  # This is typically obtained via a typemap lookup, but can be overridden.
+  # This is typically obtained via a typemap lookup, but can be
+  # overridden. Also set vars ready for evalling the typemap template.
 
   my $expr;
   my $outputmap;
@@ -3245,9 +3285,9 @@ sub generate_output {
     # template-expanded, so $output_code is effectively post-eval code.
   }
   elsif ($type =~ /^array\(([^,]*),(.*)\)/) {
-    # Handle the implicit array return type, "array(type, nlelem)"
-    # specially rather than using a typemap entry. It returns a mortal
-    # string which is a copy of $var, which it assumes is a C array of
+    # Specially handle the implicit array return type, "array(type, nlelem)"
+    # rather than using a typemap entry. It returns a string SV whose
+    # buffer is a copy of $var, which it assumes is a C array of
     # type 'type' with 'nelem' elements.
 
     my ($atype, $nitems) = ($1, $2);
@@ -3300,6 +3340,7 @@ sub generate_output {
                     type        => $eval_type,
                   };
 
+
   # ------------------------------------------------------------------
   # Handle DO_ARRAY_ELEM token as a very special case
 
@@ -3308,15 +3349,15 @@ sub generate_output {
     # explain the similar code for the DO_ARRAY_ELEM hack there.
 
     if ($var ne 'RETVAL') {
-      # typemap templates containing DO_ARRAY_ELEM are assumed to contain
+      # Typemap templates containing DO_ARRAY_ELEM are assumed to contain
       # a loop which explicitly stores a new mortal SV at each of the
-      # locations ST(0) .. ST(n-1) then uses the code from the typemap
-      # for the underlying array element to type to set each SV' value.
-      # This is a horrible hack for RETVAL, would probably fail with
-      # OUTLIST due oto stack offsets being wrong, and definitely
-      # would fail with OUT, which is supposed to be updating parameter
-      # SVs, not pushing anything on the stack. So forbid all except
-      # RETVAL.
+      # locations ST(0) .. ST(n-1), and which then uses the code from the
+      # typemap for the underlying array element to set each SV's value.
+      #
+      # This is a horrible hack for RETVAL, which would probably fail with
+      # OUTLIST due to stack offsets being wrong, and definitely would
+      # fail with OUT, which is supposed to be updating parameter SVs, not
+      # pushing anything on the stack. So forbid all except RETVAL.
       $self->blurt("Can't use typemap containing DO_ARRAY_ELEM for "
                     . (defined $out_num ? "OUTLIST" : "OUT")
                     . " parameter");
@@ -3350,6 +3391,7 @@ sub generate_output {
     return;
   }
 
+
   # ------------------------------------------------------------------
   # Now emit code for the three types of return value:
   #
@@ -3362,24 +3404,25 @@ sub generate_output {
   #                      local var set from that parameter. (May also use
   #                      TARG if not already used by RETVAL).
   #
-  #   OUT/OUTPUT param - update the SV at ST(n) which corresponds to that
-  #                      parameter with the current value of the local var
-  #                      set from that parameter.
+  #   OUT/OUTPUT param - update passed arg SV at ST($num-1) (which
+  #                      corresponds to param) with the current value of
+  #                      the local var set from that parameter.
 
   if ($var ne 'RETVAL' and not defined $out_num) {
-    # This is a normal OUTPUT var - i.e. a named parameter whose
+    # This is a normal OUTPUT var: i.e. a named parameter whose
     # corresponding arg on the stack should be updated with the
     # parameter's current value by using the code contained in the
     # output typemap.
     #
-    # Note that for non-RETVAL args being *updated* (as opposed to
-    # replaced), this branch relies on the typemap to Do The Right
-    # Thing. For example, T_BOOL currently has this typemap entry:
+    # Note that for args being *updated* (as opposed to replaced), this
+    # branch relies on the typemap to Do The Right Thing. For example,
+    # T_BOOL currently has this typemap entry:
     #
-    # ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);" : \"sv_setsv($arg, boolSV($var));"}
+    # ${"$var" eq "RETVAL" ? \"$arg = boolSV($var);"
+    #                      : \"sv_setsv($arg, boolSV($var));"}
     #
-    #  which means that if we hit this branch, $evalexpr will have been
-    #  expanded to something like sv_setsv(ST(2), boolSV(foo))
+    # which means that if we hit this branch, $evalexpr will have been
+    # expanded to something like "sv_setsv(ST(2), boolSV(foo))".
 
     unless (defined $num) {
       $self->blurt("Internal error: OUT parameter has undefined argument number");
@@ -3400,11 +3443,14 @@ sub generate_output {
     return;
   }
 
-  # RETVAL or "OUTLIST foo".
-  # An SV with value of RETVAL/foo should be pushed onto the stack.
+
+  # ------------------------------------------------------------------
+  # The rest of this main body handles RETVAL or "OUTLIST foo".
 
   if (defined $output_code and !defined $out_num) {
-    # Deferred RETVAL with overridden typemap code. Just emit as-is.
+    # Handle this (just emit overridden code as-is):
+    #    OUTPUT:
+    #       RETVAL output_code
     print "\t$output_code\n";
     print "\t++SP;\n" if $self->{xsub_stack_was_reset};
     return;
@@ -3412,17 +3458,14 @@ sub generate_output {
 
   # Emit a standard RETVAL/OUTLIST return
 
-  my $do_mortalize   = 0;  # Emit an sv_2mortal()
-  my $want_newmortal = 0;  # Emit an sv_newmortal()
-  my $retvar = 'RETVALSV'; # The name of the C var which holds the SV
-                           # (likely tmp) to set to the value of the var
 
-  # Evaluate the typemap, expanding any vars like $var and $arg,
+  # ------------------------------------------------------------------
+  # First, evaluate the typemap, expanding any vars like $var and $arg,
   # for example,
   #
   #     $arg = newFoo($var);
   # or
-  #     sv_setfoo($arg, $var);
+  #     sv_setFoo($arg, $var);
   #
   # However, rather than using the actual destination (such as ST(0))
   # for the value of $arg, we instead set it initially to RETVALSV. This
@@ -3468,21 +3511,26 @@ sub generate_output {
   my $evalexpr = $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
 
 
-  # The two halves of this big if/else examine the two forms of evalled
+  # ------------------------------------------------------------------
+  # Examine the just-evalled typemap code to determine what optimisations
+  # etc can be performed and what sort of code needs emitting. The two
+  # halves of this following if/else examine the two forms of evalled
   # typemap:
   #
   #     RETVALSV = newFoo((Foo)RETVAL);
   # and
-  #     sv_setfoo(RETVALSV, (Foo)RETVAL);
-  #
-  # looking for optimisations and determining what sort of code needs
-  # emitting.
+  #     sv_setFoo(RETVALSV, (Foo)RETVAL);
   #
   # In particular, the first form is assumed to be returning an SV which
   # the function has generated itself (e.g. newSVREF()) and which may
   # just need mortalising; while the second form generally needs a call
-  # to sv_newmortal() first to create an SV which the function can set
-  # the value of.
+  # to sv_newmortal() first to create an SV which the function can then
+  # set the value of.
+
+  my $do_mortalize   = 0;  # Emit an sv_2mortal()
+  my $want_newmortal = 0;  # Emit an sv_newmortal()
+  my $retvar = 'RETVALSV'; # The name of the C var which holds the SV
+                           # (likely tmp) to set to the value of the var
 
   if ($evalexpr =~ /^\s*\Q$arg\E\s*=/) {
     # Handle this form: RETVALSV = newFoo((Foo)RETVAL);
@@ -3503,57 +3551,57 @@ sub generate_output {
         /x)
     {
       # If so, we can skip mortalising it to stop it leaking.
-      $retvar = $orig_arg; # just assign ST(0) directly
+      $retvar = $orig_arg; # just assign to ST(N) directly
     }
     else {
       # general '$arg = newFOO()' typemap
       $do_mortalize = 1;
 
-      # See comment above about when return type is SVPtr (i.e. SV*)
+      # If $var is already of type SV*, then use that instead of
+      # declaring 'SV* RETVALSV' as an intermediate var.
       $retvar = $var if $ntype eq "SVPtr";
     }
   }
   else {
-    # Handle this form: sv_setfoo(RETVALSV, (Foo)RETVAL);
+    # Handle this (eval-expanded) form of typemap:
+    #     sv_setFoo(RETVALSV, (Foo)var);
     # We generally need to supply a mortal SV for the typemap code to
-    # set, and then return it,
+    # set, and then return it on the stack,
 
-    # First, see if we can use the targ (if any) attached to  the
-    # current OP_ENTERSUB to avoid having to create a new mortal.
+    # First, see if we can use the targ (if any) attached to the current
+    # OP_ENTERSUB, to avoid having to create a new mortal.
     #
-    # The targetable() Typemap method looks at whether the typemap
-    # is of the form sv_setX($arg, $val) or similar, for X in iv ,uv,
-    # nv, pv, pvn.
-    # Note that we did the same lookup earlier to determine whether to
-    # emit dXSTARG, a macro which expands to something like:
+    # The targetable() OutputMap class method looks at whether the code
+    # snippet is of a form suitable for using TARG as the destination.
+    # It looks for one of a known list of well-behaved setting function
+    # calls, like sv_setiv() which will set the TARG to a value that
+    # doesn't include magic, tieing, being a reference (which would leak
+    # as the TARG is never freed), etc. If so, emit dXSTARG and replace
+    # RETVALSV with TARG.
+    #
+    # For backwards-compatibility, dXSTARG may have already been emitted
+    # early in the XSUB body, when a more restrictive set of targ-
+    # compatible typemap entries were checked for. Note that dXSTARG is
+    # defined as something like:
     #
     #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
     #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
-    #
-    # We currently only use TARG for these specific cases. Ideally we
-    # would always use TARG if available, but it turns out we shouldn't
-    # use TARG if the returned value is a ref to something: since the
-    # targ is never freed, the referent is never freed either. But in
-    # future there might be other cases that would safely benefit.
-
 
     if (   $self->{config_optimize}
         && ExtUtils::Typemaps::OutputMap->targetable($evalexpr)
         && (!$self->{xsub_targ_declared} || $self->{xsub_targ_usable}) )
     {
-      # TARG is available, use it rather than creating a new mortal.
-      # Also, use TARG[iun] macro as appropriate to speed up setting TARG
-      # to the return value in common cases.
-
+      # So TARG is available for use.
       $retvar = 'TARG';
       $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
 
-      # Convert sv_setiv(RETVALSV, val) to TARGi(val,1) and similarly
-      # for uv and nv. These macros skip a function call for the common
-      # case where TARG is already a simple IV/UV/NV.
-      # Also convert the _mg forms. Since we're setting the TARG,
-      # there shouldn't be set magic on the TARG SV, so the _mg action
-      # can be safely ignored.
+      # Since we're using TARG for the return SV, see if we can use the
+      # TARG[iun] macros as appropriate to speed up setting it.
+      # If so, convert "sv_setiv(RETVALSV, val)" to "TARGi(val,1)" and
+      # similarly for uv and nv. These macros skip a function call for the
+      # common case where TARG is already a simple IV/UV/NV. Convert the
+      # _mg forms too: since we're setting the TARG, there shouldn't be
+      # set magic on it, so the _mg action can be safely ignored.
 
       $evalexpr =~ s{
                     ^
@@ -3574,6 +3622,8 @@ sub generate_output {
     }
   }
 
+
+  # ------------------------------------------------------------------
   # Now emit the return C code, based on the various flags and values
   # determined above.
 
@@ -3594,19 +3644,20 @@ sub generate_output {
 
   push @lines, "\tRETVALSV = sv_newmortal();\n" if $want_newmortal;
 
-  # Emit the typemap, unless it's of the trivial "var = var"
-  # form, which is generated when the typemap is of the form
-  # '$arg = $var' and the SVPtr optimisation is using $var for the
-  # destination.
+  # Emit the typemap, while changing the name of the destination SV back
+  # from RETVALSV to one of the other forms (varname/TARG/ST(N)) if was
+  # determined earlier to be necessary.
+  # Skip emitting it if it's of the trivial form "var = var", which is
+  # generated when the typemap is of the form '$arg = $var' and the SVPtr
+  # optimisation is using $var for the destination.
 
-  # (See comments above about sometimes using RETVAL/TARG/ST(0)
-  # instead of RETVALSV.)
   $evalexpr =~ s/\bRETVALSV\b/$retvar/g if $retvar ne 'RETVALSV';
+
   unless ($evalexpr =~ /^\s*\Q$var\E\s*=\s*\Q$var\E\s*;\s*$/) {
     push @lines, split /^/, $evalexpr
   }
 
-  # Emit mortalisation on the result SV if need be
+  # Emit mortalisation on the result SV if needed
   push @lines, "\t$retvar = sv_2mortal($retvar);\n" if $do_mortalize;
 
   # Emit the final 'ST(n) = RETVALSV' or similar, unless ST(n)
