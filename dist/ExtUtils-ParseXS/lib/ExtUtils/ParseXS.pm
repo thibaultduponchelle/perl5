@@ -1265,7 +1265,7 @@ EOF
                 }
                 @{ $self->{xsub_sig}{params}})
         {
-          $self->generate_output($param);
+          $param->as_output_code($self);
         }
 
         # If there are any OUTLIST vars to be pushed, first extend the
@@ -1298,7 +1298,7 @@ EOF
 
           if (($retval && $retval->{in_output}) || $implicit_OUTPUT_RETVAL) {
             # emit a deferred RETVAL from OUTPUT or implicit RETVAL
-            $self->generate_output($retval);
+            $retval->as_output_code($self);
           }
 
         $XSRETURN_count = 1 if     $self->{xsub_return_type} ne "void"
@@ -1312,7 +1312,7 @@ EOF
                              }
                              @{$self->{xsub_sig}{params}}
         ) {
-          $self->generate_output($param, $num++);
+          $param->as_output_code($self, $num++);
         }
       }
 
@@ -2197,7 +2197,7 @@ sub OUTPUT_handler {
       next;
     }
 
-    $self->generate_output($param);
+    $param->as_output_code($self);
   } # foreach line in OUTPUT block
 }
 
@@ -3126,7 +3126,7 @@ sub fetch_para {
 }
 
 
-# $self->generate_output($param[, $out_num])
+# $param->as_output_code($ParseXS_object, $out_num])
 #
 # Emit code to: possibly create, then set the value of, and possibly
 # push, an output SV, based on the values in the $param object.
@@ -3198,13 +3198,13 @@ sub fetch_para {
 # etc. Note that RETVALSV is private and shouldn't be referenced within XS
 # code or typemaps.
 
-sub generate_output {
-  my ExtUtils::ParseXS $self = shift;
-  my ExtUtils::ParseXS::Node::Param $param = shift;
+sub ExtUtils::ParseXS::Node::Param::as_output_code {
+  my ExtUtils::ParseXS::Node::Param $self = shift;
+  my ExtUtils::ParseXS              $pxs  = shift;
   my $out_num = shift;
 
   my ($type, $num, $var, $do_setmagic, $output_code)
-    = @{$param}{qw(type arg_num var do_setmagic output_code)};
+    = @{$self}{qw(type arg_num var do_setmagic output_code)};
 
   if ($var eq 'RETVAL') {
     # Do some preliminary RETVAL-specific checks and settings.
@@ -3215,7 +3215,7 @@ sub generate_output {
     # OUTLIST - the value of $do_setmagic only applies to its use as an
     # OUTPUT (updating) value.
 
-    $self->death("Internal error: do set magic requested on RETVAL")
+    $pxs->death("Internal error: do set magic requested on RETVAL")
       if $do_setmagic;
 
     # RETVAL normally has an undefined arg_num, although it can be
@@ -3230,7 +3230,7 @@ sub generate_output {
     # In the above, 'long' is used for the RETVAL C var's declaration,
     # while 'int' is used to generate the return code (for backwards
     # compatibility).
-    $type = $self->{xsub_return_type};
+    $type = $pxs->{xsub_return_type};
   }
 
 
@@ -3239,7 +3239,7 @@ sub generate_output {
   # values
 
   unless (defined $type) {
-    $self->blurt("Can't determine output type for '$var'");
+    $pxs->blurt("Can't determine output type for '$var'");
     return;
   }
 
@@ -3259,7 +3259,7 @@ sub generate_output {
 
   # The type as supplied to the eval is Foo__Bar rather than Foo::Bar
   my $eval_type = $type;
-  $eval_type =~ tr/:/_/ unless $self->{config_RetainCplusplusHierarchicalTypes};
+  $eval_type =~ tr/:/_/ unless $pxs->{config_RetainCplusplusHierarchicalTypes};
 
   # We can be called twice for the same variable: once to update the
   # original arg (via an entry in OUTPUT) and once to push the param's
@@ -3275,7 +3275,7 @@ sub generate_output {
 
   my $expr;
   my $outputmap;
-  my $typemaps = $self->{typemaps_object};
+  my $typemaps = $pxs->{typemaps_object};
 
   if (defined $output_code) {
     # An override on an OUTPUT line: use that instead of the typemap.
@@ -3294,7 +3294,7 @@ sub generate_output {
     if ($var ne 'RETVAL') {
       # This special type is intended for use only as the return type of
       # an XSUB
-      $self->blurt("Can't use array(type,nitems) type for "
+      $pxs->blurt("Can't use array(type,nitems) type for "
                     . (defined $out_num ? "OUTLIST" : "OUT")
                     . " parameter");
       return;
@@ -3308,13 +3308,13 @@ sub generate_output {
     # Get the output map entry for this type; complain if not found.
     my $typemap = $typemaps->get_typemap(ctype => $type);
     if (not $typemap) {
-      $self->report_typemap_failure($typemaps, $type);
+      $pxs->report_typemap_failure($typemaps, $type);
       return;
     }
 
     $outputmap = $typemaps->get_outputmap(xstype => $typemap->xstype);
     if (not $outputmap) {
-      $self->blurt("Error: No OUTPUT definition for type '$type', typekind '"
+      $pxs->blurt("Error: No OUTPUT definition for type '$type', typekind '"
                    . $typemap->xstype . "' found");
       return;
     }
@@ -3326,7 +3326,7 @@ sub generate_output {
     $expr = $outputmap->cleaned_code;
   }
 
-  my $arg = $self->ST(defined $out_num ? $out_num + 1 : $num);
+  my $arg = $pxs->ST(defined $out_num ? $out_num + 1 : $num);
 
   # Specify the environment for if/when the code template is evalled.
   my $eval_vars = {
@@ -3357,7 +3357,7 @@ sub generate_output {
       # OUTLIST due to stack offsets being wrong, and definitely would
       # fail with OUT, which is supposed to be updating parameter SVs, not
       # pushing anything on the stack. So forbid all except RETVAL.
-      $self->blurt("Can't use typemap containing DO_ARRAY_ELEM for "
+      $pxs->blurt("Can't use typemap containing DO_ARRAY_ELEM for "
                     . (defined $out_num ? "OUTLIST" : "OUT")
                     . " parameter");
       return;
@@ -3365,13 +3365,13 @@ sub generate_output {
 
     my $subtypemap = $typemaps->get_typemap(ctype => $subtype);
     if (not $subtypemap) {
-      $self->report_typemap_failure($typemaps, $subtype);
+      $pxs->report_typemap_failure($typemaps, $subtype);
       return;
     }
 
     my $suboutputmap = $typemaps->get_outputmap(xstype => $subtypemap->xstype);
     if (not $suboutputmap) {
-      $self->blurt("Error: No OUTPUT definition for type '$subtype', typekind '" . $subtypemap->xstype . "' found");
+      $pxs->blurt("Error: No OUTPUT definition for type '$subtype', typekind '" . $subtypemap->xstype . "' found");
       return;
     }
 
@@ -3386,7 +3386,7 @@ sub generate_output {
     # passing on to normal RETVAL processing) since that processing is
     # expecting to push a single temp onto the stack, while our code
     # pushes several temps.
-    print $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
+    print $pxs->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
     return;
   }
 
@@ -3424,7 +3424,7 @@ sub generate_output {
     # expanded to something like "sv_setsv(ST(2), boolSV(foo))".
 
     unless (defined $num) {
-      $self->blurt("Internal error: OUT parameter has undefined argument number");
+      $pxs->blurt("Internal error: OUT parameter has undefined argument number");
       return;
     }
 
@@ -3432,13 +3432,13 @@ sub generate_output {
     # typemap
     my $code = defined $output_code
         ? "\t$output_code\n"
-        : $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
+        : $pxs->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
     print $code;
 
     # For parameters in the OUTPUT section, honour the SETMAGIC in force
     # at the time. For parameters instead being output because of an OUT
     # keyword in the signature, assume set magic always.
-    print "\tSvSETMAGIC($arg);\n" if !$param->{in_output} || $do_setmagic;
+    print "\tSvSETMAGIC($arg);\n" if !$self->{in_output} || $do_setmagic;
     return;
   }
 
@@ -3451,7 +3451,7 @@ sub generate_output {
     #    OUTPUT:
     #       RETVAL output_code
     print "\t$output_code\n";
-    print "\t++SP;\n" if $self->{xsub_stack_was_reset};
+    print "\t++SP;\n" if $pxs->{xsub_stack_was_reset};
     return;
   }
 
@@ -3507,7 +3507,7 @@ sub generate_output {
 
   my $orig_arg = $arg;
   $eval_vars->{arg} = $arg = 'RETVALSV';
-  my $evalexpr = $self->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
+  my $evalexpr = $pxs->eval_output_typemap_code("qq\a$expr\a", $eval_vars);
 
 
   # ------------------------------------------------------------------
@@ -3586,13 +3586,13 @@ sub generate_output {
     #   SV * targ = (PL_op->op_private & OPpENTERSUB_HASTARG)
     #               ? PAD_SV(PL_op->op_targ) : sv_newmortal()
 
-    if (   $self->{config_optimize}
+    if (   $pxs->{config_optimize}
         && ExtUtils::Typemaps::OutputMap->targetable($evalexpr)
-        && !$self->{xsub_targ_used})
+        && !$pxs->{xsub_targ_used})
     {
       # So TARG is available for use.
       $retvar = 'TARG';
-      $self->{xsub_targ_used} = 1;  # can only use TARG to return one value
+      $pxs->{xsub_targ_used} = 1;  # can only use TARG to return one value
 
       # Since we're using TARG for the return SV, see if we can use the
       # TARG[iun] macros as appropriate to speed up setting it.
@@ -3631,7 +3631,7 @@ sub generate_output {
 
   # Do any declarations first
 
-  if ($retvar eq 'TARG' && !$self->{xsub_targ_declared_early}) {
+  if ($retvar eq 'TARG' && !$pxs->{xsub_targ_declared_early}) {
     push @lines, "\tdXSTARG;\n";
     $do_scope = 1;
   }
@@ -3674,7 +3674,7 @@ sub generate_output {
   }
 
   print @lines;
-  print "\t++SP;\n" if $self->{xsub_stack_was_reset};
+  print "\t++SP;\n" if $pxs->{xsub_stack_was_reset};
 }
 
 
