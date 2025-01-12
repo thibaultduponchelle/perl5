@@ -3280,9 +3280,9 @@ You don't have to know if memory was allocated or not.  Just call C<Safefree>
 unconditionally.  C<free_me> will contain a suitable value to pass to
 C<Safefree> for it to do the right thing, regardless.
 
-Upon return, the number of variants in the string can be computed by
-having saved the value of C<*lenp> before the call, and subtracting it from the
-after-call value of C<*lenp>.
+Upon return, the number of variants in the string can be computed by having
+saved the value of C<*lenp> before the call, and subtracting the after-call
+value of C<*lenp> from it.
 
 If you want to convert to UTF-8 from encodings other than the native (Latin1 or
 EBCDIC), see L</sv_recode_to_utf8>().
