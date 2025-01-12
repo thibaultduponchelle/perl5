@@ -323,8 +323,8 @@ BEGIN {
   'xsub_stack_was_reset',      # An XSprePUSH was emitted, so return values
                                # should be PUSHed rather than just set.
 
-  'xsub_targ_declared',        # A dXSTARG was emitted so TARG var in scope
-  'xsub_targ_usable',          # The TARG hasn't already been used
+  'xsub_targ_declared_early',  # A wide-scoped dXSTARG was emitted early
+  'xsub_targ_used',            # The TARG has already been used
 
   );
 
@@ -1023,9 +1023,9 @@ EOF
       $self->{xsub_deferred_code_lines} = "";  # lines to be emitted after
                                                # PREINIT/INPUT
 
-      $self->{xsub_stack_was_reset} = 0; # XSprePUSH not yet emitted
-      $self->{xsub_targ_declared}   = 0; # dXSTARG   not yet emitted
-      $self->{xsub_targ_usable}     = 0; # TARG hasn't already been used
+      $self->{xsub_stack_was_reset}     = 0; # XSprePUSH not yet emitted
+      $self->{xsub_targ_declared_early} = 0; # dXSTARG   not yet emitted
+      $self->{xsub_targ_used}           = 0; # TARG hasn't yet been used
 
       # Process any implicit INPUT section.
       $self->INPUT_handler($_);
@@ -1080,8 +1080,7 @@ EOF
               and $outputmap
               and $outputmap->targetable_legacy)
           {
-            $self->{xsub_targ_declared} = 1;
-            $self->{xsub_targ_usable}   = 1;
+            $self->{xsub_targ_declared_early} = 1;
             print "\tdXSTARG;\n"
           }
         }
@@ -3589,11 +3588,11 @@ sub generate_output {
 
     if (   $self->{config_optimize}
         && ExtUtils::Typemaps::OutputMap->targetable($evalexpr)
-        && (!$self->{xsub_targ_declared} || $self->{xsub_targ_usable}) )
+        && !$self->{xsub_targ_used})
     {
       # So TARG is available for use.
       $retvar = 'TARG';
-      $self->{xsub_targ_usable} = 0;  # can only use TARG to return one value
+      $self->{xsub_targ_used} = 1;  # can only use TARG to return one value
 
       # Since we're using TARG for the return SV, see if we can use the
       # TARG[iun] macros as appropriate to speed up setting it.
@@ -3632,9 +3631,8 @@ sub generate_output {
 
   # Do any declarations first
 
-  if ($retvar eq 'TARG' && !$self->{xsub_targ_declared}) {
+  if ($retvar eq 'TARG' && !$self->{xsub_targ_declared_early}) {
     push @lines, "\tdXSTARG;\n";
-    $self->{xsub_targ_declared} = 1;
     $do_scope = 1;
   }
   elsif ($retvar eq 'RETVALSV') {
