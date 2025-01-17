@@ -1246,14 +1246,10 @@ our %Modules = (
     },
 
     'Time::Piece' => {
-        'DISTRIBUTION' => 'ESAYM/Time-Piece-1.3401.tar.gz',
+        'DISTRIBUTION' => 'ESAYM/Time-Piece-1.35.tar.gz',
+        'SYNCINFO'     => 'LeoNerd on Fri Jan 17 15:27:02 2025',
         'FILES'        => q[cpan/Time-Piece],
         'EXCLUDED'     => [ qw[reverse_deps.txt] ],
-        'CUSTOMIZED'   => [
-            # https://github.com/Dual-Life/Time-Piece/pull/64
-            'Piece.pm',
-            'Piece.xs'
-         ],
     },
 
     'Unicode::Collate' => {
