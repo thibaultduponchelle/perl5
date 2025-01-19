@@ -719,10 +719,11 @@ sub as_output_code {
   #                      to the value of RETVAL. This is typically a new
   #                      mortal, but may be optimised to use TARG.
   #
-  #   OUTLIST param    - ($out_num is +ve) Push after any RETVAL, new
-  #                      mortal(s) containing the current values of the
-  #                      local var set from that parameter. (May also use
-  #                      TARG if not already used by RETVAL).
+  #   OUTLIST param    - if $out_num is defined (and will be >= 0) Push
+  #                      after any RETVAL, new mortal(s) containing the
+  #                      current values of the local var set from that
+  #                      parameter. (May also use TARG if not already used
+  #                      by RETVAL).
   #
   #   OUT/OUTPUT param - update passed arg SV at ST($num-1) (which
   #                      corresponds to param) with the current value of

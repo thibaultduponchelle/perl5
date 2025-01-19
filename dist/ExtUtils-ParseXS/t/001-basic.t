@@ -1615,7 +1615,7 @@ EOF
                 'foo(IN_OUTLIST int A = 0)',
             ],
             [ 0, 0, qr/\bXSprePUSH;/,                    "XSprePUSH"       ],
-            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 3"        ],
+            [ 0, 0, qr/\b\QEXTEND(SP,2);/,               "extend 2"        ],
             [ 0, 0, qr/\b\QTARGi((IV)RETVAL, 1);/,       "TARGi RETVAL"    ],
             [ 0, 0, qr/\b\QST(0) = TARG;\E\s+\Q++SP;/,   "store RETVAL,SP++" ],
             [ 0, 0, qr/\b\QRETVALSV = sv_newmortal();/ , "create new mortal" ],
@@ -3497,7 +3497,7 @@ EOF
             [ 0, 1, qr/DO_ARRAY_ELEM/,              "no DO_ARRAY_ELEM" ],
         ],
 
-        # for OUT and OUTLIST arguments, don't process DO
+        # for OUT and OUTLIST arguments, don't process DO_ARRAY_ELEM
         [
             "T_ARRAY OUT",
             [ Q(<<'EOF') ],
