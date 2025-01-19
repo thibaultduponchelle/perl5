@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 667;
+use Test::More;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -3506,3 +3506,5 @@ EOF
 
     test_many($preamble, 'XS_Foo_', \@test_fns);
 }
+
+done_testing;
