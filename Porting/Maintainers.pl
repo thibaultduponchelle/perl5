@@ -994,6 +994,7 @@ our %Modules = (
             # this file lives outside the cpan/ directory
             'pod/perlpodstyle.pod' => 'pod/perlpodstyle.pod',
         },
+        'CUSTOMIZED'   => ['pod/perlpodstyle.pod'],
     },
 
     'Safe' => {
