@@ -20,8 +20,6 @@ Scalar::Util cpan/Scalar-List-Utils/lib/Scalar/Util.pm dddbfb9e26de572f88598cdf0
 Scalar::Util cpan/Scalar-List-Utils/lib/Sub/Util.pm 4be8e62dea87acce5ba50d11e7246baa0bfc5be0
 Scalar::Util cpan/Scalar-List-Utils/ListUtil.xs 3d0ba62cd4222599bf00956e8b963817f3afcfe2
 Scalar::Util cpan/Scalar-List-Utils/t/exotic_names.t a62bcb9dc667d5e51cbe061705b15f202ede8351
-Time::Piece cpan/Time-Piece/Piece.pm 8cec8b66183ceddb9bf2b6af35dcdd345bc9adfa
-Time::Piece cpan/Time-Piece/Piece.xs 543152540ee17788a638b2c5746b86c3d04401d1
 Win32 cpan/Win32/Win32.pm 07a777ca9c5f642f068f92895a79a096a4a54469
 Win32 cpan/Win32/Win32.xs ff7efeb6b7bfa67e22411b6e3db761c730213a52
 Win32API::File cpan/Win32API-File/File.pm 8fd212857f821cb26648878b96e57f13bf21b99e
