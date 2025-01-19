@@ -284,7 +284,7 @@ sub targetable {
               $bal_no_comma          # arg 2: value to use
         |
             # 3-arg functions
-            sv_set(?:pvn|pvn_mg|pv_bufsize)
+            sv_set(?:pvn|pvn_mg)
             \s*
             \( \s*
               $target                # arg 1: SV to set

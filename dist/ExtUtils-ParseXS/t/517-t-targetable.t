@@ -196,7 +196,6 @@ foreach my $xstype (sort keys %$output_expr_ref) {
 
         1,  'sv_setpvn($arg,    (char*)RETVAL, strlen(RETVAL));',
         1,  'sv_setpvn_mg($arg, (char*)RETVAL, strlen(RETVAL));',
-        1,  'sv_setpv_bufsize($arg, (char*)RETVAL, 1024);',
 
 
         # variants of the SV to set

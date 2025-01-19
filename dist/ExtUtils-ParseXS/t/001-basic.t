@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 670;
+use Test::More tests => 667;
 use Config;
 use DynaLoader;
 use ExtUtils::CBuilder;
@@ -1939,7 +1939,6 @@ EOF
         |const short   T_MYSHORT
         |undef_t       T_MYUNDEF
         |ivmg_t        T_MYIVMG
-        |bufsize_t     T_MYBUFSIZE
         |
         |INPUT
         |T_MYIV
@@ -1957,9 +1956,6 @@ EOF
         |
         |T_MYIVMG
         |    sv_setiv_mg($arg, (IV)RETVAL);
-        |
-        |T_MYBUFSIZE
-        |    sv_setpv_bufsize($arg, (IV)RETVAL, 1024);
         |EOF
 EOF
 
@@ -2117,16 +2113,6 @@ EOF
             ],
             [ 0, 0, qr/\bdXSTARG;/,          "has targ def" ],
             [ 0, 0, qr/\bTARGi\(/,           "has TARGi" ],
-        ],
-
-        [
-            "dXSTARG with sv_setpv_bufsize",
-            [
-                'bufsize_t',
-                'foo()',
-            ],
-            [ 0, 0, qr/\bdXSTARG;/,            "has targ def" ],
-            [ 0, 0, qr/\bsv_setpv_bufsize\(/,  "has sv_setpv_bufsize" ],
         ],
     );
 
