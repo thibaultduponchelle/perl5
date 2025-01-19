@@ -1623,6 +1623,19 @@ EOF
             [ 0, 0, qr/\b\QST(1) = RETVALSV;\E\s+\}\s+\Q++SP;/, "store RETVALSV"],
             [ 0, 0, qr/\b\QXSRETURN(2);/,                "XSRETURN(2)"     ],
         ],
+        [
+            "OUTLIST with OUTPUT override",
+            [ Q(<<'EOF') ],
+                |void
+                |foo(IN_OUTLIST int A)
+                |    OUTPUT:
+                |        A    setA(ST[99], A);
+EOF
+            [ 0, 1, qr/\bEXTEND\b/,                      "NO extend"       ],
+            [ 0, 0, qr/\b\QsetA(ST[99], A);/,            "set ST[99]"      ],
+            [ 0, 0, qr/\b\QTARGi((IV)A, 1);/,            "set ST[0]"       ],
+            [ 0, 0, qr/\b\QXSRETURN(1);/,                "XSRETURN(1)"     ],
+        ],
     );
 
     test_many($preamble, 'XS_Foo_', \@test_fns);

@@ -586,7 +586,7 @@ sub as_output_code {
   # original arg (via an entry in OUTPUT) and once to push the param's
   # value (via OUTLIST). When doing the latter, any override code on an
   # OUTPUT line should not be used.
-  undef $output_code if $out_num;
+  undef $output_code if defined $out_num;
 
 
   # ------------------------------------------------------------------
