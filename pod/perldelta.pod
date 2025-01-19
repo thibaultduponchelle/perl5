@@ -24,8 +24,7 @@ the debugger.
 In some cases this change led to circular reference chains between
 closures and other existing references, resulting in memory leaks.
 
-This change has been reverted, fixing [GH #22547] but re-breaking [GH
-#19370].
+This change has been reverted, fixing [L<GH #22547|https://github.com/Perl/perl5/issues/22547>] but re-breaking [L<GH #19370|https://github.com/Perl/perl5/issues/19370>].
 
 This means the reference loops won't occur, and that lexical variables
 and functions from enclosing functions may not be visible in the
@@ -42,7 +41,7 @@ function to reference its enclosing functions as it always has.
 
 The peephole optimizer recognises the following zero-offset C<substr>
 patterns and swaps in a new dedicated operator (C<OP_SUBSTR_LEFT>).
-[GH #22785]
+[L<GH #22785|https://github.com/Perl/perl5/issues/22785>]
 
     substr($x, 0, ...)
     substr($x, 0, ..., '')
@@ -117,7 +116,7 @@ in this release.
 =item *
 
 L<perlfunc/shmread> and L<perlfunc/shmwrite> are no longer limited to 31-bit
-values for their POS and SIZE arguments. [GH #22895]
+values for their POS and SIZE arguments. [L<GH #22895|https://github.com/Perl/perl5/issues/22895>]
 
 =item *
 
@@ -125,7 +124,7 @@ L<perlfunc/shmread> is now better behaved if VAR is not a plain string. If VAR
 is a tied variable, it calls C<STORE> once; previously, it would also call
 C<FETCH>, but without using the result. If VAR is a reference, the referenced
 entity has its refcount properly decremented when VAR is turned into a string;
-previously, it would leak memory. [GH #22898]
+previously, it would leak memory. [L<GH #22898|https://github.com/Perl/perl5/issues/22898>]
 
 =back
 
