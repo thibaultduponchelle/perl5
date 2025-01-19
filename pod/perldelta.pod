@@ -154,9 +154,43 @@ XXX Remove this section if F<Porting/corelist-perldelta.pl> did not add any cont
 
 =item *
 
-L<XXX> has been upgraded from version A.xx to B.yy.
+L<B::Deparse> has been upgraded from version 1.81 to 1.82.
 
-XXX If there was something important to note about this change, include that here.
+=item *
+
+L<Config::Perl::V> has been upgraded from version 0.36 to 0.38.
+
+=item *
+
+L<Data::Dumper> has been upgraded from version 2.190 to 2.191.
+
+=item *
+
+L<DBM_Filter> has been upgraded from version 0.06 to 0.07.
+
+=item *
+
+L<experimental> has been upgraded from version 0.032 to 0.034.
+
+=item *
+
+L<Module::CoreList> has been upgraded from version 5.20241220 to 5.20250120.
+
+=item *
+
+L<Opcode> has been upgraded from version 1.67 to 1.68.
+
+=item *
+
+L<Term::Table> has been upgraded from version 0.023 to 0.024.
+
+=item *
+
+L<Test::Simple> has been upgraded from version 1.302204 to 1.302207.
+
+=item *
+
+L<Time::Piece> has been upgraded from version 1.3401_01 to 1.35.
 
 =back
 
