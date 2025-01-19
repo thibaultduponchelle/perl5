@@ -1006,6 +1006,14 @@ our %Modules = (
         'DISTRIBUTION' => 'PEVANS/Scalar-List-Utils-1.68.tar.gz',
         'SYNCINFO'     => 'rich on Sun Oct 20 15:42:58 2024',
         'FILES'        => q[cpan/Scalar-List-Utils],
+        'CUSTOMIZED'   => [
+            'ListUtil.xs',
+            'lib/List/Util.pm',
+            'lib/List/Util/XS.pm',
+            'lib/Scalar/Util.pm',
+            'lib/Sub/Util.pm',
+            't/exotic_names.t'
+         ],
     },
 
     'Search::Dict' => {
