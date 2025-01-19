@@ -968,6 +968,7 @@ our %Modules = (
             qw{.ChangeLog.swp},
             qr{^\.github/}
 	],
+        'CUSTOMIZED'   => ['lib/Pod/Simple/HTMLLegacy.pm'],
     },
 
     'Pod::Usage' => {
