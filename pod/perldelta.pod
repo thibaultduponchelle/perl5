@@ -141,9 +141,33 @@ previously, it would leak memory.
 
 =head1 Acknowledgements
 
-XXX Generate this with:
+Perl 5.41.8 represents approximately 4 weeks of development since Perl 5.41.7
+and contains approximately 8,800 lines of changes across 370 files from 17
+authors.
 
-  perl Porting/acknowledgements.pl v5.41.7..HEAD
+Excluding auto-generated files, documentation and release tools, there were
+approximately 6,800 lines of changes to 320 .pm, .t, .c and .h files.
+
+Perl continues to flourish into its fourth decade thanks to a vibrant community
+of users and developers.  The following people are known to have contributed
+the improvements that became Perl 5.41.8:
+
+Branislav Zahradník, Chad Granum, Dan Book, David Mitchell, Graham Knop,
+H.Merijn Brand, James E Keenan, Karl Williamson, Lukas Mai, Max Maischein, Paul
+Evans, Philippe Bruhat (BooK), Richard Leach, Sergei Zhmylev, Steve Hay, TAKAI
+Kousuke, Tony Cook.
+
+The list above is almost certainly incomplete as it is automatically generated
+from version control history.  In particular, it does not include the names of
+the (very much appreciated) contributors who reported issues to the Perl bug
+tracker.
+
+Many of the changes included in this version originated in the CPAN modules
+included in Perl's core.  We're grateful to the entire CPAN community for
+helping Perl to flourish.
+
+For a more complete list of all of Perl's historical contributors, please see
+the F<AUTHORS> file in the Perl source distribution.
 
 =head1 Reporting Bugs
 
