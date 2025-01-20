@@ -77,6 +77,14 @@ L<experimental> has been upgraded from version 0.032 to 0.034.
 
 =item *
 
+L<ExtUtils::ParseXS> has been upgraded from version 3.56 to 3.57.
+
+=item *
+
+L<ExtUtils::Typemaps> has been upgraded from version 3.56 to 3.57.
+
+=item *
+
 L<Module::CoreList> has been upgraded from version 5.20241220 to 5.20250120.
 
 =item *
